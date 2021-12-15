@@ -1,3 +1,4 @@
+import numpy
 import pathlib
 import pandas
 import pathlib
@@ -84,13 +85,15 @@ def get_parameter_mapping(rids: typing.Optional[typing.Iterable[str]]=None) -> m
             'S0': (15, 20),
             'X0': (0.01, 1),
             'mu_max': (0.4, 0.5),
-            'Y_XS': (0.3, 1)
+            'Y_XS': (0.3, 1),
+            'K_S': (1e-7, numpy.inf),
         },
         guesses={
             'S0': 17,
             'X0': 0.25,
             'mu_max': 0.42,
-            'Y_XS': 0.6
+            'Y_XS': 0.6,
+            'K_S': 0.02,
         }
     )
     return theta_mapping
