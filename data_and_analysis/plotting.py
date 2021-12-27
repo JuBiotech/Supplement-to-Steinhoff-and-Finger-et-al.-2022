@@ -10,7 +10,10 @@ import scipy
 import string
 import typing
 import arviz
-import pymc3
+try:
+    import pymc as pm
+except ModuleNotFoundError:
+    import pymc3 as pm
 
 
 import calibr8
@@ -44,7 +47,7 @@ DP_FIGURES.mkdir(exist_ok=True)
 matplotlib.rcParams.update(params)
 
 
-def savefig(fig, name: str, *, facecolor="white", **kwargs):
+def savefig(fig, name: str, *, dp: pathlib.Path=DP_FIGURES, facecolor="white", **kwargs):
     """Saves a bitmapped and vector version of the figure.
 
     Parameters
@@ -53,6 +56,8 @@ def savefig(fig, name: str, *, facecolor="white", **kwargs):
         The figure object.
     name : str
         Filename without extension.
+    dp : pathlib.Path
+        Target directory. Defaults to the "figures" subfolder next to this script.
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
@@ -62,8 +67,8 @@ def savefig(fig, name: str, *, facecolor="white", **kwargs):
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
         kwargs["dpi"] = max_dpi
-    fig.savefig(DP_FIGURES / f"{name}.png", **kwargs)
-    fig.savefig(DP_FIGURES / f"{name}.pdf", **kwargs)
+    fig.savefig(dp / f"{name}.png", **kwargs)
+    fig.savefig(dp / f"{name}.pdf", **kwargs)
     # Save with & without border to measure the "shrink".
     # This is needed to rescale the dpi setting such that we get max pixels also without the border.
     tkwargs = dict(
@@ -72,7 +77,7 @@ def savefig(fig, name: str, *, facecolor="white", **kwargs):
         pad_inches=0.01,
     )
     tkwargs.update(kwargs)
-    fp = str(DP_FIGURES / f"{name}.tif")
+    fp = str(dp / f"{name}.tif")
     fig.savefig(fp, **tkwargs)
     # Measure the size
     actual = numpy.array(pyplot.imread(fp).shape[:2][::-1])
@@ -270,7 +275,7 @@ def plot_residuals_pp(
         # tspred_extra may be used to plot a higher resolution or extrapolated density
         mu, scale, df = cmodel.predict_dependent(tspred_extra.y)
         ppbs_extra = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
-        pymc3.gp.util.plot_gp_dist(
+        pm.gp.util.plot_gp_dist(
             ax=ax,
             x=tspred_extra.t,
             samples=ppbs_extra - numpy.median(ppbs_extra, axis=0),
@@ -279,7 +284,7 @@ def plot_residuals_pp(
         )
     else:
         # plot the density from the data-like prediction
-        pymc3.gp.util.plot_gp_dist(
+        pm.gp.util.plot_gp_dist(
             ax=ax, x=tsobs.t, samples=ppbs - median, palette=palette, plot_samples=False
         )
     yres = tsobs.y - median
@@ -458,3 +463,47 @@ def plot_mle(
     pyplot.tight_layout()
     pyplot.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.45, hspace=None)
     return fig
+
+
+def hdi_ticklimits(axs, idata, replacements, ylabelpad=-50, xlabelpad=-15, xrotate=False):
+    posterior = idata.posterior.stack(sample=("chain", "draw"))
+    hdi90 = arviz.hdi(idata, hdi_prob=0.9)
+    hdi98 = arviz.hdi(idata, hdi_prob=0.98)
+    inv_replacements = {val: key for key, val in replacements.items()}
+    def _edit(axs, which: str):
+        get_label = getattr(axs[0], f"get_{which}label")
+    
+        label = get_label()
+        rvname = label.split("\n")[0]
+        rvname = inv_replacements.get(rvname, rvname)
+        rv = posterior[rvname]
+        sel = {}
+        if "\n" in label:
+            for cname, cval in zip(rv.coords, label.split("\n")[1:]):
+                # TODO: typecast cval to match the coord type
+                sel[cname] = cval
+        limits = hdi98[rvname].sel(sel).values
+        hdi = hdi90[rvname].sel(sel).values
+        # Round the HDI such that it differs in the last 2 decimals.
+        # This way the label looks nice but is only positioned wrong by <1%
+        # of the plot width.
+        sigdigits = max(0, numpy.ceil(numpy.log10(1 / numpy.abs(hdi[1] - hdi[0]))) + 1)
+        hdi = numpy.round(hdi, decimals=int(sigdigits))
+        for i, ax in enumerate(axs):
+            if i == 0:
+                get_label = getattr(ax, f"get_{which}label")
+                set_label = getattr(ax, f"set_{which}label")
+                set_label(get_label(), labelpad=ylabelpad if which == "y" else xlabelpad)
+            ax.set(**{f"{which}lim": limits, f"{which}ticks": hdi})
+            if xrotate and which == "x":
+                ax.tick_params("x", labelrotation=90)
+
+    for r, axr in enumerate(axs[:]):
+        _edit(axr, which="y")
+    for c, axc in enumerate(axs[:, :].T):
+        _edit(axc[::-1], which="x")
+    # move labels back
+    fig = pyplot.gcf()
+    fig.align_ylabels()
+    fig.align_xlabels()
+    return

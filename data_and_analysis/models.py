@@ -35,16 +35,16 @@ class BLProCDWBackscatterModelV1(calibr8.BaseLogIndependentAsymmetricLogisticT):
 
 
 
-def get_biomass_model() -> BLProCDWBackscatterModelV1:
-    return BLProCDWBackscatterModelV1.load(DP_PROCESSED / "biomass.json")
+def get_biomass_model(dp=DP_PROCESSED) -> BLProCDWBackscatterModelV1:
+    return BLProCDWBackscatterModelV1.load(dp / "biomass.json")
 
 
-def get_glucose_model() -> LogisticGlucoseCalibrationModelV1:
-    return LogisticGlucoseCalibrationModelV1.load(DP_PROCESSED / "glucose_logistic.json")
+def get_glucose_model(dp=DP_PROCESSED) -> LogisticGlucoseCalibrationModelV1:
+    return LogisticGlucoseCalibrationModelV1.load(dp / "glucose_logistic.json")
 
 
-def get_glucose_model_linear() -> LinearGlucoseCalibrationModelV1:
-    return LinearGlucoseCalibrationModelV1.load(DP_PROCESSED / "glucose_linear.json")
+def get_glucose_model_linear(dp=DP_PROCESSED) -> LinearGlucoseCalibrationModelV1:
+    return LinearGlucoseCalibrationModelV1.load(dp / "glucose_linear.json")
 
 
 class MonodModel(murefi.BaseODEModel):
@@ -74,8 +74,8 @@ class MonodModel(murefi.BaseODEModel):
         return yprime
 
 
-def get_parameter_mapping(rids: typing.Optional[typing.Iterable[str]]=None) -> murefi.ParameterMapping:
-    df_mapping = pandas.read_excel(DP_PROCESSED / "full_parameter_mapping.xlsx", index_col="rid")
+def get_parameter_mapping(rids: typing.Optional[typing.Iterable[str]]=None, dp=DP_PROCESSED) -> murefi.ParameterMapping:
+    df_mapping = pandas.read_excel(dp / "full_parameter_mapping.xlsx", index_col="rid")
     if rids:
         df_mapping = df_mapping.loc[list(rids)]
     model = MonodModel()
