@@ -495,3 +495,4 @@ MigrationBackup/
 # Trace files are too large for GitHub and must be uploaded via releases:
 *.nc
 !**/4.2.2 FlowerPlate_named.png
+/results/*
