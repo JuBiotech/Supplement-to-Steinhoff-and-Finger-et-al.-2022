@@ -291,8 +291,8 @@ def sample(wd: pathlib.Path):
         L = objective(theta)
 
 
-    graph = pm.model_to_graphviz(pmodel)
     try:
+        graph = pm.model_to_graphviz(pmodel)
         graph.render(filename=wd / "cultivation_model", format="pdf", cleanup=True)
     except:
         _log.warning("Failed to render model graph.")
