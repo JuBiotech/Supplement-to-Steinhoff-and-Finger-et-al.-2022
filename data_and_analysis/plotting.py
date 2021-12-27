@@ -328,7 +328,7 @@ def plot_mle(
     # _________________________________END: Inset plots_________________________________#
 
     # plot the Flowerplate icon
-    img = mpimg.imread(pathlib.Path("figures") / "4.2.2 FlowerPlate_named.png")
+    img = mpimg.imread(DP_FIGURES / "4.2.2 FlowerPlate_named.png")
     ax_inset2.imshow(img[::-1, ...])
     ax_inset2.xaxis.set_visible(False)
     ax_inset2.yaxis.set_visible(False)

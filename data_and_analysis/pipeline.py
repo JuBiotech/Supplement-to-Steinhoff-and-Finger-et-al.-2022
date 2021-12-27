@@ -256,7 +256,7 @@ def sample(wd: pathlib.Path):
         if not "X0" in key:
             mcmc_dict[key] = item
     start_dict = mcmc_dict.copy()
-    _log(start_dict)
+    _log.info(start_dict)
 
     objective = murefi.objectives.for_dataset(
         dataset=dataset,
