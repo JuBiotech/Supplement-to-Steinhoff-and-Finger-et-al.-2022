@@ -5,6 +5,7 @@ their original data formatats to Excel sheets.
 This transformation is performed with our internal packages `bletl` and `retl`.
 """
 import os
+import logging
 import numpy
 import pandas
 import pathlib
@@ -17,6 +18,7 @@ import retl
 import murefi
 
 DP_RAW = pathlib.Path(__file__).parent / "raw_data"
+_log = logging.getLogger(__file__)
 
 
 def read_glucose_x_y(
@@ -179,7 +181,8 @@ def read_biomass_x_and_y(
 
 
 def create_cultivation_dataset(
-    with_pca=True, dkey_x="Pahpshmir_1400_BS3_CgWT", dkey_s="A365"
+    with_pca=True, dkey_x="Pahpshmir_1400_BS3_CgWT", dkey_s="A365",
+    trim_backscatter=False,
 ) -> murefi.Dataset:
     WELLS_WITH_PCA = [f"{r}{c:02d}" for r in "ABCD" for c in [2, 3, 4, 5, 6, 7, 8]]
     # The wells without PCA were not used for the analysis in the manuscript.
@@ -214,9 +217,22 @@ def create_cultivation_dataset(
         X_t = X_t[df_events.loc[well, "inoculation_cycle"] :]
         X_t = tuple(X_t - X_t[0])
         X_y = tuple(X_y[df_events.loc[well, "inoculation_cycle"] :])
+
+        # Optional: Take only up to the maximum
+        if trim_backscatter:
+            ipeak = numpy.argmax(X_y)
+            ypeak = X_y[ipeak]
+            if ypeak > 10:
+                _log.info("Peak backscatter of %s in cycle %i at %f.", well, ipeak, ypeak)
+                X_t = X_t[:ipeak + 1]
+                X_y = X_y[:ipeak + 1]
+            else:
+                _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT trimming.", well, ipeak, ypeak)
+
         # get timeseries for glucose
         S_t = tuple([X_t[-1]])
         S_y = tuple([df_events.loc[well, "glc_A365"]])
+
         # store into the dataset
         replicate = murefi.Replicate(well)
         replicate[dkey_x] = murefi.Timeseries(

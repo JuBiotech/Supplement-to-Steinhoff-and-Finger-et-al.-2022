@@ -86,8 +86,8 @@ def preprocess_biomass_calibration(wd: pathlib.Path):
     return
 
 
-def preprocess_into_dataset(wd: pathlib.Path):
-    dataset = preprocessing.create_cultivation_dataset()
+def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False):
+    dataset = preprocessing.create_cultivation_dataset(trim_backscatter=trim_backscatter)
     dataset.save(wd / "cultivation_dataset.h5")
     return
 
