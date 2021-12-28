@@ -340,10 +340,12 @@ def plot_diagnostics(wd: pathlib.Path):
 
     _log.info("Plotting warmup draws")
     arviz.plot_trace(idata_full.warmup_posterior)
+    pyplot.tight_layout()
     pyplot.savefig(wd / "plot_warmup.png")
 
     _log.info("Plotting posterior draws")
     arviz.plot_trace(idata_full)
+    pyplot.tight_layout()
     pyplot.savefig(wd / "plot_trace.png")
 
     _log.info("Calculating summary statistics")
@@ -380,7 +382,7 @@ def plot_pair(wd: pathlib.Path):
     )
     fig = pyplot.gcf()
 
-    plotting.hdi_ticklimits(axs, idata_full, xlabelpad=-47, xrotate=True)
+    plotting.hdi_ticklimits(axs, idata_full, replacements, xlabelpad=-47, xrotate=True)
     t_end = time.time()
     _log.info(f"Plotting time: {t_end - t_start:.0f} seconds.")
     plotting.savefig(fig, "plot_pair", dp=wd, dpi=200, bbox_inches="tight")
@@ -398,9 +400,13 @@ def summarize_parameters(wd: pathlib.Path):
     for k in df.index.values:
         if "[" in k:
             rvname, cindex = k.strip("]").split("[")
-            cindex = int(cindex)
-            cname = tuple(idata.posterior[rvname].coords.keys())[2+0]
-            cval = idata.posterior.coords[cname].values[cindex]
+            try:
+                cindex = int(cindex)
+                cname = tuple(idata.posterior[rvname].coords.keys())[2+0]
+                cval = idata.posterior.coords[cname].values[cindex]
+            except:
+                _log.warning("Unexpected error in summary index interpretation. rvname: %s, cindex: %s, ArviZ version: %s", rvname, cindex, arviz.__version__)
+                cval = cindex
             rename_dict[k] = f"{rvname}_{cval}"
     df = df.rename(index=rename_dict)
     df = df.assign(MLE=pandas.Series(theta_dict)).fillna("-")
