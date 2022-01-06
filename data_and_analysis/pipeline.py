@@ -379,11 +379,15 @@ def plot_pair(wd: pathlib.Path):
     }
     labeller = arviz.labels.MapLabeller(var_name_map=replacements)
 
+    if len(idata_full.posterior.replicate.values) == 28:
+        reps = idata_full.posterior.replicate.values.reshape(4, 7).flatten("F")
+    else:
+        reps = idata_full.posterior.replicate.values
     axs = arviz.plot_pair(
         idata_full,
         var_names=["~F_offset"],
         figsize=(40, 40),
-        coords=dict(replicate=idata_full.posterior.replicate.values.reshape(4, 7).flatten("F")),
+        coords=dict(replicate=reps),
         kind='kde',
         labeller=labeller,
         backend_kwargs=dict(gridspec_kw=dict(hspace=0, wspace=0))
