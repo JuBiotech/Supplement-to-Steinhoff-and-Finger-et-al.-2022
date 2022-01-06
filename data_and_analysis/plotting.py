@@ -1,3 +1,4 @@
+import fastprogress
 import matplotlib
 from matplotlib import cm, colors, pyplot
 import numpy
@@ -507,3 +508,82 @@ def hdi_ticklimits(axs, idata, replacements, ylabelpad=-50, xlabelpad=-15, xrota
     fig.align_ylabels()
     fig.align_xlabels()
     return
+
+
+def plot_kinetics(
+    ax,
+    idata_full,
+    theta_mapping,
+    model,
+    subset,
+    cm_biomass,
+    cm_glucose,
+    inferred_posteriors,
+    *,
+    annotate=True,
+    predict_kwargs,
+):
+    parameters_sample = extract_parameters(idata_full, theta_mapping, nmax=1000)
+
+    if not predict_kwargs:
+        predict_kwargs = {}
+    predict_kwargs.setdefault("template", murefi.Dataset.make_template_like(subset, independent_keys='SX'))
+    predict_kwargs.setdefault("parameter_mapping", theta_mapping)
+    predict_kwargs.setdefault("parameters", parameters_sample)
+    ds_prediction = model.predict_dataset(**predict_kwargs)
+
+    red = cm.Reds(0.9)
+    green = cm.Greens(0.9)
+
+    for rid, rep in ds_prediction.items():
+        for ikey, ts in rep.items():
+            pm.gp.util.plot_gp_dist(
+                ax=ax,
+                x=ts.t,
+                samples=ts.y,
+                palette='Reds' if ikey == 'S' else 'Greens',
+                plot_samples=True
+            )
+
+    for r, (rid, replicate) in enumerate(subset.items()):
+        # biomass
+        ts = replicate['Pahpshmir_1400_BS3_CgWT']
+        ax.scatter(ts.t, cm_biomass.predict_independent(ts.y), s=2, color=green)
+        for i, (t, y) in fastprogress.progress_bar(list(enumerate(zip(ts.t, ts.y)))):
+            if (rid, i) in inferred_posteriors:
+                pst = inferred_posteriors[(rid, i)]
+                ax.plot(
+                    [t, t],
+                    [pst.hdi_lower, pst.hdi_upper],
+                    color=green, alpha=0.5, linewidth=0.5
+                )
+
+        # glucose
+        ts = replicate['A365']
+        ax.scatter(ts.t, cm_glucose.predict_independent(ts.y), s=25, color=red, marker='x')
+        pst = cm_glucose.infer_independent(ts.y, lower=0, upper=20, ci_prob=0.9)
+        ax.fill_betweenx(
+            y=pst.hdi_x,
+            x1=ts.t - pst.hdi_pdf/20,
+            x2=ts.t + pst.hdi_pdf/20,
+            color=red, alpha=0.5,
+            edgecolor=None,
+        )
+        # annotations
+    if annotate:
+        for rid, replicate in subset.items():
+            x = replicate['Pahpshmir_1400_BS3_CgWT'].t[-1]
+            y = replicate['Pahpshmir_1400_BS3_CgWT'].y[-1]
+            y = cm_biomass.predict_independent(replicate['Pahpshmir_1400_BS3_CgWT'].y[-1])
+            
+            if not numpy.isfinite(y):
+                y = 0
+            ax.annotate(
+                rid, xy=(x, y), xytext=(x, y+1.5), 
+                arrowprops=dict(arrowstyle='-|>', facecolor='black'),
+                horizontalalignment='center',
+            )
+
+    ax.set_ylabel('concentration   [g/L]')
+    ax.set_xlabel('time   [h]')
+    return ds_prediction
