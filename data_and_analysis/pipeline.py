@@ -429,3 +429,35 @@ def summarize_parameters(wd: pathlib.Path):
     df = df[cols.split(",")]
     df.to_excel(wd / "summary.xlsx")
     return
+
+
+def plot_ks_curvature(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "full_posterior.nc")
+    cm_biomass = models.get_biomass_model(wd)
+    cm_glucose = models.get_glucose_model(wd)
+    model = models.MonodModel()
+    dataset = murefi.load_dataset(wd / "cultivation_dataset.h5")
+
+    # Select replicates for which the backscatter is above 17
+    rids = {
+        rid
+        for rid, rep in dataset.items()
+        if rep["Pahpshmir_1400_BS3_CgWT"].y[-1] > 17
+    }
+    _log.info("Candidates for curvature plots: %s", rids)
+
+    for rid in rids:
+        _log.info("Preparing K_S curvature plot for %s", rid)
+        theta_mapping = models.get_parameter_mapping(rids=[rid], dp=wd)
+
+        fig, axs = plotting.plot_ks_curvature(
+            idata,
+            theta_mapping,
+            model,
+            dataset[rid],
+            cm_biomass,
+            cm_glucose,
+        )
+        plotting.savefig(fig, f"ks_curvature_{rid}", dp=wd)
+        pyplot.close()
+    return

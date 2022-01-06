@@ -522,7 +522,14 @@ def plot_kinetics(
     *,
     annotate=True,
     predict_kwargs,
+    ax_glucose=None,
+    biomass_violins=False,
+    violin_shrink=20,
 ):
+    # Default glucose to the same axis as biomass
+    axb = ax
+    axg = (ax_glucose or ax)
+
     parameters_sample = extract_parameters(idata_full, theta_mapping, nmax=1000)
 
     if not predict_kwargs:
@@ -535,10 +542,15 @@ def plot_kinetics(
     red = cm.Reds(0.9)
     green = cm.Greens(0.9)
 
+    axmap = {
+        "X": axb,
+        "S": axg,
+    }
+
     for rid, rep in ds_prediction.items():
         for ikey, ts in rep.items():
             pm.gp.util.plot_gp_dist(
-                ax=ax,
+                ax=axmap[ts.independent_key],
                 x=ts.t,
                 samples=ts.y,
                 palette='Reds' if ikey == 'S' else 'Greens',
@@ -548,24 +560,35 @@ def plot_kinetics(
     for r, (rid, replicate) in enumerate(subset.items()):
         # biomass
         ts = replicate['Pahpshmir_1400_BS3_CgWT']
-        ax.scatter(ts.t, cm_biomass.predict_independent(ts.y), s=2, color=green)
         for i, (t, y) in fastprogress.progress_bar(list(enumerate(zip(ts.t, ts.y)))):
             if (rid, i) in inferred_posteriors:
                 pst = inferred_posteriors[(rid, i)]
-                ax.plot(
-                    [t, t],
-                    [pst.hdi_lower, pst.hdi_upper],
-                    color=green, alpha=0.5, linewidth=0.5
-                )
+                axb.scatter(t, pst.median, s=400, color=green, marker="_")
+                if biomass_violins:
+                    axb.fill_betweenx(
+                        y=pst.hdi_x,
+                        x1=t - pst.hdi_pdf/violin_shrink,
+                        x2=t + pst.hdi_pdf/violin_shrink,
+                        color=green, alpha=0.5,
+                        edgecolor=None,
+                    )
+                else:
+                    axb.plot(
+                        [t, t],
+                        [pst.hdi_lower, pst.hdi_upper],
+                        color=green, alpha=0.5, linewidth=0.5
+                    )
 
         # glucose
         ts = replicate['A365']
-        ax.scatter(ts.t, cm_glucose.predict_independent(ts.y), s=25, color=red, marker='x')
+        assert len(ts.t) == 1
+        t = ts.t[-1]
         pst = cm_glucose.infer_independent(ts.y, lower=0, upper=20, ci_prob=0.9)
-        ax.fill_betweenx(
+        axg.scatter(t, pst.median, s=400, color=red, marker="_")
+        axg.fill_betweenx(
             y=pst.hdi_x,
-            x1=ts.t - pst.hdi_pdf/20,
-            x2=ts.t + pst.hdi_pdf/20,
+            x1=t - pst.hdi_pdf/violin_shrink,
+            x2=t + pst.hdi_pdf/violin_shrink,
             color=red, alpha=0.5,
             edgecolor=None,
         )
@@ -578,12 +601,73 @@ def plot_kinetics(
             
             if not numpy.isfinite(y):
                 y = 0
-            ax.annotate(
+            axg.annotate(
                 rid, xy=(x, y), xytext=(x, y+1.5), 
                 arrowprops=dict(arrowstyle='-|>', facecolor='black'),
                 horizontalalignment='center',
             )
 
-    ax.set_ylabel('concentration   [g/L]')
-    ax.set_xlabel('time   [h]')
+    axb.set_ylabel('concentration   [g/L]')
+    axb.set_xlabel('time   [h]')
+    if ax_glucose:
+        axb.set_ylabel('biomass   [g/L]')
+        axg.set_ylabel('glucose   [g/L]')
+        axg.set_xlabel('time   [h]')
     return ds_prediction
+
+
+def plot_ks_curvature(
+    idata,
+    theta_mapping,
+    model,
+    replicate: murefi.Replicate,
+    cm_biomass,
+    cm_glucose,
+):
+    rid = replicate.rid
+    t = replicate["Pahpshmir_1400_BS3_CgWT"].t[-1]
+    tmin, tmax = (t - 0.2, t + 0.15)
+    del t
+
+    inferred_posteriors = {}
+    ts = replicate['Pahpshmir_1400_BS3_CgWT']
+    for i, (t, y) in fastprogress.progress_bar(list(enumerate(zip(ts.t, ts.y)))):
+        if t > tmin and t < tmax:
+            inferred_posteriors[(rid, i)] = cm_biomass.infer_independent(y, lower=0, upper=20, ci_prob=0.9)
+
+    fig, (axb, axg) = pyplot.subplots(ncols=2, sharex=True, figsize=(12, 6), dpi=200)
+
+    template = {
+        rid : murefi.Replicate.make_template(tmin, tmax, "SX", rid=rid, N=400)
+    }
+    ds_prediction = plot_kinetics(
+        axb,
+        idata,
+        theta_mapping,
+        model,
+        {rid: replicate},
+        cm_biomass,
+        cm_glucose,
+        inferred_posteriors,
+        annotate=False,
+        predict_kwargs=dict(template=template),
+        ax_glucose=axg,
+        biomass_violins=True,
+        violin_shrink=100,
+    )
+
+    y = ds_prediction[rid]["X"].y
+    ymin, ymax = numpy.percentile(y, [5, 95])
+    ymin = ymin - 0.2
+    ymax = ymax + 0.2
+
+    axb.set(
+        xlim=(tmin, tmax),
+        ylim=(ymin, ymax),
+    )
+    axg.set(
+        ylim=(0, None),
+    )
+    fig.tight_layout()
+
+    return fig, (axb, axg)
