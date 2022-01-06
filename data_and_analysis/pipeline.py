@@ -86,8 +86,16 @@ def preprocess_biomass_calibration(wd: pathlib.Path):
     return
 
 
-def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False):
+def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False, subset=None):
     dataset = preprocessing.create_cultivation_dataset(trim_backscatter=trim_backscatter)
+    if subset:
+        _log.info("Filtering with subset %s", subset)
+        filtered = murefi.Dataset()
+        for rid, rep in dataset.items():
+            if rid in subset:
+                filtered[rid] = rep
+        dataset = filtered
+    _log.info("Saving dataset %s", dataset)
     dataset.save(wd / "cultivation_dataset.h5")
     return
 
