@@ -218,6 +218,10 @@ def create_cultivation_dataset(
         X_t = tuple(X_t - X_t[0])
         X_y = tuple(X_y[df_events.loc[well, "inoculation_cycle"] :])
 
+        # get timeseries for glucose
+        S_t = tuple([X_t[-1]])
+        S_y = tuple([df_events.loc[well, "glc_A365"]])
+
         # Optional: Take only up to the maximum
         if trim_backscatter:
             ipeak = numpy.argmax(X_y)
@@ -229,9 +233,6 @@ def create_cultivation_dataset(
             else:
                 _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT trimming.", well, ipeak, ypeak)
 
-        # get timeseries for glucose
-        S_t = tuple([X_t[-1]])
-        S_y = tuple([df_events.loc[well, "glc_A365"]])
 
         # store into the dataset
         replicate = murefi.Replicate(well)
