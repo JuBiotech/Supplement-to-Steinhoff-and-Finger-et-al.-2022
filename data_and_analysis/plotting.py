@@ -625,7 +625,8 @@ def plot_ks_curvature(
     cm_glucose,
 ):
     rid = replicate.rid
-    t = replicate["Pahpshmir_1400_BS3_CgWT"].t[-1]
+    ipeak = numpy.argmax(replicate["Pahpshmir_1400_BS3_CgWT"].y)
+    t = replicate["Pahpshmir_1400_BS3_CgWT"].t[ipeak]
     tmin, tmax = (t - 0.2, t + 0.15)
     del t
 
