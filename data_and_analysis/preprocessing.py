@@ -183,6 +183,7 @@ def read_biomass_x_and_y(
 def create_cultivation_dataset(
     with_pca=True, dkey_x="Pahpshmir_1400_BS3_CgWT", dkey_s="A365",
     trim_backscatter=False,
+    force_glucose_zero=False,
 ) -> murefi.Dataset:
     WELLS_WITH_PCA = [f"{r}{c:02d}" for r in "ABCD" for c in [2, 3, 4, 5, 6, 7, 8]]
     # The wells without PCA were not used for the analysis in the manuscript.
@@ -233,6 +234,16 @@ def create_cultivation_dataset(
             else:
                 _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT trimming.", well, ipeak, ypeak)
 
+        # Optional: Enforce observing glucose==0 g/L after the backscatter peak
+        if force_glucose_zero:
+            ipeak = numpy.argmax(X_y)
+            ypeak = X_y[ipeak]
+            if ypeak > 10:
+                _log.info("Forcing observation of glucose at 0 g/L from %s after peak backscatter in cycle %i.", well, ipeak)
+                # This value 👇 is the most likely observation of A365 according to our calibration
+                S_y = (0.10961253928758818,)
+            else:
+                _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT forcing glucose to zero.", well, ipeak, ypeak)
 
         # store into the dataset
         replicate = murefi.Replicate(well)

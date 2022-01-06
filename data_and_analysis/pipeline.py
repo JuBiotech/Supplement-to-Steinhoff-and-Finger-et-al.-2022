@@ -86,8 +86,11 @@ def preprocess_biomass_calibration(wd: pathlib.Path):
     return
 
 
-def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False, subset=None):
-    dataset = preprocessing.create_cultivation_dataset(trim_backscatter=trim_backscatter)
+def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False, force_glucose_zero=False, subset=None):
+    dataset = preprocessing.create_cultivation_dataset(
+        trim_backscatter=trim_backscatter,
+        force_glucose_zero=force_glucose_zero,
+    )
     if subset:
         _log.info("Filtering with subset %s", subset)
         filtered = murefi.Dataset()
