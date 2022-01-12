@@ -387,18 +387,19 @@ def plot_mle(
         ax_inset.scatter(ts_t[mask], cdw[mask], marker="x", s=1, color=color)
 
         # S
-        ts_t = rep[cm_glucose.dependent_key].t
-        ts_y = rep[cm_glucose.dependent_key].y
-        left2.scatter(
-            ts_t,
-            ts_y,
-            marker="x",
-            s=20,
-            color=color,
-        )
-        # concentrations
-        glc = cm_glucose.predict_independent(ts_y)
-        right.scatter(ts_t, glc, marker="x", s=20, color=color)
+        if cm_glucose.dependent_key in rep:
+            ts_t = rep[cm_glucose.dependent_key].t
+            ts_y = rep[cm_glucose.dependent_key].y
+            left2.scatter(
+                ts_t,
+                ts_y,
+                marker="x",
+                s=20,
+                color=color,
+            )
+            # concentrations
+            glc = cm_glucose.predict_independent(ts_y)
+            right.scatter(ts_t, glc, marker="x", s=20, color=color)
 
         # pred-X
         ts_t = prediction[rid]["X"].t
@@ -435,8 +436,8 @@ def plot_mle(
     right.set_ylabel("concentration [g/L]")
     right.set_xlabel("time [h]")
     right.set_xlim(-1.3, 18)
-    right.set_ylim(-1, 19)
-    left.set_ylim(0, 26)
+    right.set_ylim(-1, 21)
+    left.set_ylim(0, 40)
     left2.set_ylim(0, 1.8)
     ax_inset.set_ylim(3.4, 5.2)
     ax_inset.set_xlim(6.4, 7.1)
