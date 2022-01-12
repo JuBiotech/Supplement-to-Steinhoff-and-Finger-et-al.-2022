@@ -86,11 +86,25 @@ def preprocess_biomass_calibration(wd: pathlib.Path):
     return
 
 
-def preprocess_into_dataset(wd: pathlib.Path, trim_backscatter=False, force_glucose_zero=False, subset=None):
-    dataset = preprocessing.create_cultivation_dataset(
-        trim_backscatter=trim_backscatter,
-        force_glucose_zero=force_glucose_zero,
-    )
+def preprocess_into_dataset(
+    wd: pathlib.Path,
+    trim_backscatter=False,
+    force_glucose_zero=False,
+    subset=None,
+    dataset_id: str="8T1P5H",
+):
+    if dataset_id == "8T1P5H":
+        dataset = preprocessing.create_cultivation_dataset(
+            trim_backscatter=trim_backscatter,
+            force_glucose_zero=force_glucose_zero,
+        )
+    elif dataset_id.startswith("hifreq"):
+        dataset = preprocessing.create_cultivation_dataset_hifreq(
+            fname_bldata=f"{dataset_id}.csv",
+            trim_backscatter=trim_backscatter,
+        )
+    else:
+        raise ValueError(f"Unknown dataset '{dataset_id}'.")
     if subset:
         _log.info("Filtering with subset %s", subset)
         filtered = murefi.Dataset()

@@ -256,3 +256,32 @@ def create_cultivation_dataset(
         dataset[well] = replicate
 
     return dataset
+
+
+def create_cultivation_dataset_hifreq(
+    *,
+    fname_bldata: str,
+    trim_backscatter=False,
+    dkey_x="Pahpshmir_1400_BS3_CgWT",
+) -> murefi.Dataset:
+    bldata = bletl.parse(DP_RAW / fname_bldata)
+    dataset = murefi.Dataset()
+    for well in bldata["BS3"].time.columns:
+        X_t, X_y = bldata.get_timeseries("BS3", well)
+        # Optional: Take only up to the maximum
+        if trim_backscatter:
+            ipeak = numpy.argmax(X_y)
+            ypeak = X_y[ipeak]
+            if ypeak > 10:
+                _log.info("Peak backscatter of %s in cycle %i at %f.", well, ipeak, ypeak)
+                X_t = X_t[:ipeak + 1]
+                X_y = X_y[:ipeak + 1]
+            else:
+                _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT trimming.", well, ipeak, ypeak)
+
+        replicate = murefi.Replicate(well)
+        replicate[dkey_x] = murefi.Timeseries(
+            X_t, X_y, independent_key="X", dependent_key=dkey_x
+        )
+        dataset[well] = replicate
+    return dataset
