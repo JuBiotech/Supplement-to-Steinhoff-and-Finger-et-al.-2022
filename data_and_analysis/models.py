@@ -36,7 +36,11 @@ class BLProCDWBackscatterModelV1(calibr8.BaseLogIndependentAsymmetricLogisticT):
 
 
 def get_biomass_model(dp=DP_PROCESSED) -> BLProCDWBackscatterModelV1:
-    return BLProCDWBackscatterModelV1.load(dp / "biomass.json")
+    try:
+        import calibr8_contrib
+        return calibr8_contrib.models.BLProCDWBackscatterModelV1.load(dp / "biomass.json")
+    except calibr8.utils.CompatibilityException:
+        return BLProCDWBackscatterModelV1.load(dp / "biomass.json")
 
 
 def get_glucose_model(dp=DP_PROCESSED) -> LogisticGlucoseCalibrationModelV1:
