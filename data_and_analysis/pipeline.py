@@ -164,31 +164,36 @@ def fit_glucose_calibration(wd: pathlib.Path):
     return
 
 
-def fit_biomass_calibration(wd: pathlib.Path):
-    df_data = pandas.read_excel(wd / "biomass_calibration_data.xlsx", index_col=0)
-    model = models.BLProCDWBackscatterModelV1()
+def fit_biomass_calibration(wd: pathlib.Path, contrib_model: str=None):
+    if contrib_model:
+        import calibr8_contrib
+        cm = calibr8_contrib.get_model(contrib_model)
+        cm.save(wd / "biomass.json")
+    else:
+        df_data = pandas.read_excel(wd / "biomass_calibration_data.xlsx", index_col=0)
+        model = models.BLProCDWBackscatterModelV1()
 
-    theta_fit, history = calibr8.fit_scipy(
-        model,
-        # pool the calibration data from all runs:
-        independent=df_data.independent.values,
-        dependent=df_data.dependent.values,
-        theta_guess=[1.5, 400, 2, 500, 1, 0.2, 0.01, 3],
-        theta_bounds=[
-            (-numpy.inf, 5),
-            (60, numpy.inf),
-            (-4, 4),
-            (100, 1000),
-            (-5, 5),
-            (0.001, 10),
-            (0, 1),
-            (1, 30),
-        ],
-    )
-    # NOTE: The `df` hitting the upper limit is just an indication that the outcome distribution is flat-tailed.
-    #       At `df=30` the distribution is already close to the Normal, but still has the useful properties of
-    #       not going `nan` at extreme values.
-    model.save(wd / "biomass.json")
+        theta_fit, history = calibr8.fit_scipy(
+            model,
+            # pool the calibration data from all runs:
+            independent=df_data.independent.values,
+            dependent=df_data.dependent.values,
+            theta_guess=[1.5, 400, 2, 500, 1, 0.2, 0.01, 3],
+            theta_bounds=[
+                (-numpy.inf, 5),
+                (60, numpy.inf),
+                (-4, 4),
+                (100, 1000),
+                (-5, 5),
+                (0.001, 10),
+                (0, 1),
+                (1, 30),
+            ],
+        )
+        # NOTE: The `df` hitting the upper limit is just an indication that the outcome distribution is flat-tailed.
+        #       At `df=30` the distribution is already close to the Normal, but still has the useful properties of
+        #       not going `nan` at extreme values.
+        model.save(wd / "biomass.json")
     fig, axs = calibr8.plot_model(model)
     plotting.savefig(fig, "calibration_biomass", dp=wd)
     return
