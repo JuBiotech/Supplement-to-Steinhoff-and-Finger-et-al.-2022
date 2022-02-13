@@ -581,19 +581,20 @@ def plot_kinetics(
                     )
 
         # glucose
-        ts = replicate['A365']
-        assert len(ts.t) == 1
-        t = ts.t[-1]
-        pst = cm_glucose.infer_independent(ts.y, lower=0, upper=20, ci_prob=0.9)
-        axg.scatter(t, pst.median, s=400, color=red, marker="_")
-        axg.fill_betweenx(
-            y=pst.hdi_x,
-            x1=t - pst.hdi_pdf/violin_shrink,
-            x2=t + pst.hdi_pdf/violin_shrink,
-            color=red, alpha=0.5,
-            edgecolor=None,
-        )
-        # annotations
+        if "A365" in replicate:
+            ts = replicate['A365']
+            assert len(ts.t) == 1
+            t = ts.t[-1]
+            pst = cm_glucose.infer_independent(ts.y, lower=0, upper=20, ci_prob=0.9)
+            axg.scatter(t, pst.median, s=400, color=red, marker="_")
+            axg.fill_betweenx(
+                y=pst.hdi_x,
+                x1=t - pst.hdi_pdf/violin_shrink,
+                x2=t + pst.hdi_pdf/violin_shrink,
+                color=red, alpha=0.5,
+                edgecolor=None,
+            )
+    # annotations
     if annotate:
         for rid, replicate in subset.items():
             x = replicate['Pahpshmir_1400_BS3_CgWT'].t[-1]
