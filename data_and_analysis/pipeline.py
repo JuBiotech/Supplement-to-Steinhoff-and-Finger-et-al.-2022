@@ -102,6 +102,7 @@ def preprocess_into_dataset(
         dataset = preprocessing.create_cultivation_dataset_hifreq(
             fname_bldata=f"{dataset_id}.csv",
             trim_backscatter=trim_backscatter,
+            force_glucose_zero=force_glucose_zero,
         )
     else:
         raise ValueError(f"Unknown dataset '{dataset_id}'.")
