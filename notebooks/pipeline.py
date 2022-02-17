@@ -270,7 +270,7 @@ def plot_pair(wd: pathlib.Path):
 
     axs = arviz.plot_pair(
         idata_full,
-        figsize=(40, 40),
+        figsize=(8, 8),
         kind='kde',
         labeller=labeller,
         backend_kwargs=dict(gridspec_kw=dict(hspace=0, wspace=0))
@@ -278,6 +278,10 @@ def plot_pair(wd: pathlib.Path):
     fig = pyplot.gcf()
 
     plotting.hdi_ticklimits(axs, idata_full, replacements, xlabelpad=-47, xrotate=True)
+    newlim = axs[-1, -1].get_xlim()[1] * 0.7
+    for ax in axs[-2, :]:
+        ax.set_ylim(0, newlim)
+    axs[-1, -1].set_xlim(0, newlim)
     t_end = time.time()
     _log.info(f"Plotting time: {t_end - t_start:.0f} seconds.")
     plotting.savefig(fig, "plot_pair", dp=wd, dpi=200, bbox_inches="tight")
