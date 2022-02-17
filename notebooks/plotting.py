@@ -196,22 +196,8 @@ def plot_mle(
     # Manually set the position and relative size of the inset axes within ax1
     ip = InsetPosition(right, [0.63, 0.14, 0.33, 0.45])
     ax_inset.set_axes_locator(ip)
-    # inset plot for left plot (FP)
-    ax_inset2 = pyplot.axes([1, 1, 0, 0])
-    # Manually set the position and relative size of the inset axes within ax
-    ip = InsetPosition(left, [0.63, 0.14, 0.30, 0.4])
-    ax_inset2.set_axes_locator(ip)
     # _________________________________END: Inset plots_________________________________#
 
-    # plot the Flowerplate icon
-    img = mpimg.imread(DP_RESULTS / "4.2.2 FlowerPlate_named.png")
-    ax_inset2.imshow(img[::-1, ...])
-    ax_inset2.xaxis.set_visible(False)
-    ax_inset2.yaxis.set_visible(False)
-    ax_inset2.spines["bottom"].set_visible(False)
-    ax_inset2.spines["top"].set_visible(False)
-    ax_inset2.spines["right"].set_visible(False)
-    ax_inset2.spines["left"].set_visible(False)
 
     # plot the data
     for i, (rid, rep) in enumerate(dataset.items()):
