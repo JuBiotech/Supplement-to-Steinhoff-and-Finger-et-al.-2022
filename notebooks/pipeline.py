@@ -166,7 +166,7 @@ def sample(wd: pathlib.Path):
     X_values = [item for (key, item) in mle_dict.items() if "X0" in key]
     mcmc_dict = {}
     for key, item in mle_dict.items():
-        if not "X0" in key:
+        if not "K_S" in key:
             mcmc_dict[key] = item
     start_dict = mcmc_dict.copy()
     _log.info(start_dict)
