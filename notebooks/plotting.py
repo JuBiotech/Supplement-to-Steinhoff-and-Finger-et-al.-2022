@@ -42,13 +42,14 @@ params = {
     "lines.markersize": 3,
 }
 
-DP_FIGURES = pathlib.Path(__file__).parent / "figures"
-DP_FIGURES.mkdir(exist_ok=True)
+DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
+DP_RESULTS = DP_ROOT / "results"
+DP_RESULTS.mkdir(exist_ok=True)
 
 matplotlib.rcParams.update(params)
 
 
-def savefig(fig, name: str, *, dp: pathlib.Path=DP_FIGURES, facecolor="white", **kwargs):
+def savefig(fig, name: str, *, dp: pathlib.Path=DP_RESULTS, facecolor="white", **kwargs):
     """Saves a bitmapped and vector version of the figure.
 
     Parameters
@@ -150,88 +151,6 @@ class FZcmaps:
     black = transparentify(cm.Greys)
 
 
-def plot_glucose_cmodels(fn_out=None, *, residual_type="relative"):
-    model_lin = models.get_glucose_model_linear()
-    model_asym = models.get_glucose_model()
-    X = model_asym.cal_independent
-    Y = model_asym.cal_dependent
-    fig, axs = pyplot.subplots(
-        nrows=2, ncols=3, figsize=(16, 10), dpi=120, sharex="col", sharey="col"
-    )
-    calibr8.plot_model(model_lin, fig=fig, axs=axs[0, :], residual_type=residual_type)
-    calibr8.plot_model(model_asym, fig=fig, axs=axs[1, :], residual_type=residual_type)
-    for i, row in enumerate(axs):
-        for j, ax in enumerate(row):
-            if i == 1:
-                ax.set_xlabel("glucose concentration [g/L]")
-            else:
-                ax.set_xlabel("")
-            ax.scatter([], [], label="calibration data", color="#1f77b4")
-            ax.plot([], [], label="$\mu_\mathrm{dependent}$", color="green")
-            if j in [0, 1]:
-                ax.set_ylabel("absorbance$_{365 \mathrm{nm}}$ [a.u.]")
-                if i == 0:
-                    ax.scatter(
-                        X[X > 20],
-                        Y[X > 20],
-                        color="#1f77b4",
-                        marker="x",
-                        label="calibration data (ignored)",
-                        s=25,
-                    )
-            ax.text(
-                0.03,
-                0.93,
-                string.ascii_uppercase[j + i * len(row)],
-                transform=ax.transAxes,
-                size=20,
-                weight="bold",
-            )
-    handles, labels = axs[0, 0].get_legend_handles_labels()
-    handles2, labels2 = (
-        (itemgetter(1, 2, 3, 0, -2, -1)(handles)),
-        (itemgetter(1, 2, 3, 0, -2, -1)(labels)),
-    )
-    axs[0, 0].legend(handles2, labels2, loc="lower right")
-    if residual_type == "relative":
-        axs[0, 2].set_ylim(-0.1, 0.2)
-        axs[1, 2].set_ylim(-0.1, 0.2)
-    pyplot.tight_layout()
-    if fn_out:
-        savefig(fig, fn_out)
-
-
-def plot_biomass_cmodel(fn_out=None, *, residual_type="relative"):
-    btm_model = models.get_biomass_model()
-    fig, axs = pyplot.subplots(nrows=1, ncols=3, figsize=(16, 6.5), dpi=120)
-    calibr8.plot_model(btm_model, fig=fig, axs=axs, residual_type=residual_type)
-    for i, ax in enumerate(axs):
-        ax.set_xlabel("biomass concentration [g/L]")
-        ax.scatter([], [], label="calibration data", color="#1f77b4")
-        if i in [0, 1]:
-            ax.set_ylabel("backscatter [a.u.]")
-        ax.plot([], [], label="$\mu_\mathrm{dependent}$", color="green")
-        # if i in [0,1]:
-        #   ax.set_ylabel('absorbance$_{365 \mathrm{nm}}$ [a.u.]')
-        ax.text(
-            0.03,
-            0.93,
-            string.ascii_uppercase[i],
-            transform=ax.transAxes,
-            size=20,
-            weight="bold",
-        )
-    handles, labels = axs[0].get_legend_handles_labels()
-    handles2, labels2 = (
-        (itemgetter(1, 2, 3, 0, -1)(handles)),
-        (itemgetter(1, 2, 3, 0, -1)(labels)),
-    )
-    axs[0].legend(handles2, labels2, loc="lower right")
-    pyplot.tight_layout()
-    if fn_out:
-        savefig(fig, fn_out)
-
-
 def extract_parameters(
     idata: arviz.InferenceData,
     theta_mapping: murefi.ParameterMapping,
@@ -252,50 +171,6 @@ def extract_parameters(
             pvals = posterior[pname].values
         parameters[pname] = pvals[idxrnd]
     return parameters
-
-
-def plot_residuals_pp(
-    ax,
-    cmodel,
-    tsobs: murefi.Timeseries,
-    tspred: murefi.Timeseries,
-    *,
-    color,
-    palette,
-    tspred_extra: typing.Optional[murefi.Timeseries] = None,
-):
-    assert isinstance(cmodel, calibr8.BaseModelT)
-    numpy.testing.assert_array_equal(tspred.t, tsobs.t)
-
-    # for each of the 9000 posterior samples, draw 1 observation
-    mu, scale, df = cmodel.predict_dependent(tspred.y)
-    ppbs = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
-    median = numpy.median(ppbs, axis=0)
-
-    if tspred_extra is not None:
-        # tspred_extra may be used to plot a higher resolution or extrapolated density
-        mu, scale, df = cmodel.predict_dependent(tspred_extra.y)
-        ppbs_extra = scipy.stats.t.rvs(loc=mu, scale=scale, df=df)
-        pm.gp.util.plot_gp_dist(
-            ax=ax,
-            x=tspred_extra.t,
-            samples=ppbs_extra - numpy.median(ppbs_extra, axis=0),
-            palette=palette,
-            plot_samples=False,
-        )
-    else:
-        # plot the density from the data-like prediction
-        pm.gp.util.plot_gp_dist(
-            ax=ax, x=tsobs.t, samples=ppbs - median, palette=palette, plot_samples=False
-        )
-    yres = tsobs.y - median
-    ax.scatter(
-        tsobs.t,
-        yres,
-        marker="x",
-        color=color,
-    )
-    return numpy.abs(yres).max()
 
 
 def plot_mle(
@@ -329,7 +204,7 @@ def plot_mle(
     # _________________________________END: Inset plots_________________________________#
 
     # plot the Flowerplate icon
-    img = mpimg.imread(DP_FIGURES / "4.2.2 FlowerPlate_named.png")
+    img = mpimg.imread(DP_RESULTS / "4.2.2 FlowerPlate_named.png")
     ax_inset2.imshow(img[::-1, ...])
     ax_inset2.xaxis.set_visible(False)
     ax_inset2.yaxis.set_visible(False)

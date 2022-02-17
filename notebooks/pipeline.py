@@ -19,10 +19,7 @@ import sys
 import time
 from matplotlib import pyplot
 
-try:
-    import pymc as pm
-except ModuleNotFoundError:
-    import pymc3 as pm
+import pymc as pm
 
 import preprocessing
 import models
@@ -35,166 +32,55 @@ _log = logging.getLogger(__file__)
 DP_RAW = pathlib.Path(__file__).parent.absolute() / "raw_data"
 
 
-def preprocess_glucose_calibration(wd: pathlib.Path):
-    X, Y = preprocessing.read_glucose_x_y(
-        fp_dilutions=DP_RAW / "8EXA1W_dilution_factors_glc.xlsx",
-        fp_rdata=DP_RAW / "8EXA1W_ReaderOutput_0_fresh.xml",
-        stock_concentration=50.0,
-    )
-    df = pandas.DataFrame(data=dict(concentration=X, absorbance=Y)).set_index(
-        "concentration"
-    )
-    df.to_excel(wd / "glucose_calibration_data.xlsx")
+def prepare_glucose_calibration(wd: pathlib.Path):
+    cm = models.get_glucose_model()
+    cm.save(wd / "glucose.json")
     return
 
 
-def preprocess_biomass_calibration(wd: pathlib.Path):
-    df_data = pandas.DataFrame(
-        columns=["data_point", "runid", "independent", "dependent"]
-    ).set_index(["data_point"])
-    df_data.head()
-
-    for runid in ["7MFD4H", "7N3HF5"]:
-        # get stock CDW
-        stock_mean, stock_sem = preprocessing.read_biomass_stock_concentration(
-            DP_RAW / f"{runid}_weights_before.csv",
-            DP_RAW / f"{runid}_weights_after.csv",
-            eppi_from=7,
-            eppi_to=12,
-        )
-        print(
-            f"Run {runid} was performed with a stock of {stock_mean} ± {stock_sem} gCDW/L"
-        )
-
-        # and the dilution factors from this run
-        df_dilutions = preprocessing.read_biomass_dilution_factors(
-            DP_RAW / f"{runid}_dilution_factors_cdw.xlsx"
-        )
-
-        independent, dependent = preprocessing.read_biomass_x_and_y(
-            fp_bldata=DP_RAW / f"{runid}_Pahpshmir.csv",
-            df_dilutions=df_dilutions,
-            rpm=1400,
-            filterset="BS3",
-            stock_concentration=stock_mean,
-        )
-        # collect into the DataFrame
-        for ind, dep in zip(independent, dependent):
-            df_data.loc[len(df_data)] = (runid, ind, dep)
-
-    df_data.to_excel(wd / "biomass_calibration_data.xlsx")
+def prepare_biomass_calibration(wd: pathlib.Path):
+    cm = models.get_biomass_model()
+    cm.save(wd / "biomass.json")
     return
 
 
-def preprocess_into_dataset(
+def prepare_dataset(
     wd: pathlib.Path,
-    trim_backscatter=False,
-    force_glucose_zero=False,
-    subset=None,
-    dataset_id: str="8T1P5H",
+    trim_backscatter=True,
+    force_glucose_zero=True,
+    fname_bldata:str="757-MO_Fast-MO-2022-02-08-20-59-49.csv"
 ):
-    if dataset_id == "8T1P5H":
-        dataset = preprocessing.create_cultivation_dataset(
-            trim_backscatter=trim_backscatter,
-            force_glucose_zero=force_glucose_zero,
-        )
-    elif dataset_id.startswith("hifreq"):
-        dataset = preprocessing.create_cultivation_dataset_hifreq(
-            fname_bldata=f"{dataset_id}.csv",
-            trim_backscatter=trim_backscatter,
-            force_glucose_zero=force_glucose_zero,
-        )
-    else:
-        raise ValueError(f"Unknown dataset '{dataset_id}'.")
-    if subset:
-        _log.info("Filtering with subset %s", subset)
-        filtered = murefi.Dataset()
-        for rid, rep in dataset.items():
-            if rid in subset:
-                filtered[rid] = rep
-        dataset = filtered
+    dataset = preprocessing.create_cultivation_dataset(
+        fname_bldata=fname_bldata,
+        trim_backscatter=trim_backscatter,
+        force_glucose_zero=force_glucose_zero,
+    )
     _log.info("Saving dataset %s", dataset)
     dataset.save(wd / "cultivation_dataset.h5")
     return
 
 
-def preprocess_parametermapping(wd: pathlib.Path):
+def prepare_parametermapping(wd: pathlib.Path):
     dataset = murefi.Dataset.load(wd / "cultivation_dataset.h5")
     model = models.MonodModel()
 
-    df_mapping = pandas.DataFrame(columns=["rid"] + list(model.parameter_names)).set_index(
-        "rid"
-    )
+    df_mapping = pandas.DataFrame(columns=["rid", *model.parameter_names]).set_index("rid")
     for rid in dataset.keys():
-        df_mapping.loc[rid] = ("S0", f"X0_{rid}", "mu_max", "K_S", "Y_XS")
+        df_mapping.loc[rid] = ("S0", "X0", "mu_max", "K_S", "Y_XS")
     df_mapping.to_excel(wd / "full_parameter_mapping.xlsx")
-    df_mapping.head()
     return
 
 
-def fit_glucose_calibration(wd: pathlib.Path):
-    df_data = pandas.read_excel(wd / "glucose_calibration_data.xlsx", index_col=0)
-    X = df_data.index.values
-    Y = df_data.absorbance.values
-    model = models.LogisticGlucoseCalibrationModelV1(
-        independent_key="glc", dependent_key="A365"
-    )
-    theta_guess = [-3, 3, 2, 0.1, 3, 0.05, 0.01, 2]
-    theta_bounds = [
-        (-numpy.inf, 0.3),
-        (2.5, 4),
-        (-20, 20),
-        (0, 1),
-        (-3, 3),
-        (1e-6, 0.1),
-        (0, 0.05),
-        (1, 20),
-    ]
-
-    theta_fitted, history_mle = calibr8.fit_scipy(
-        model,
-        independent=X,
-        dependent=Y,
-        theta_guess=theta_guess,
-        theta_bounds=theta_bounds,
-    )
-    model.save(wd / "glucose_logistic.json")
-
-    fig, axs = calibr8.plot_model(model)
+def plot_glucose_calibration(wd: pathlib.Path):
+    cm = models.LogisticGlucoseCalibrationModelV1.load(wd / "glucose.json")
+    fig, axs = calibr8.plot_model(cm)
     plotting.savefig(fig, "calibration_glucose", dp=wd)
     return
 
 
-def fit_biomass_calibration(wd: pathlib.Path, contrib_model: str=None):
-    if contrib_model:
-        import calibr8_contrib
-        model = calibr8_contrib.get_model(contrib_model)
-    else:
-        df_data = pandas.read_excel(wd / "biomass_calibration_data.xlsx", index_col=0)
-        model = models.BLProCDWBackscatterModelV1()
-
-        theta_fit, history = calibr8.fit_scipy(
-            model,
-            # pool the calibration data from all runs:
-            independent=df_data.independent.values,
-            dependent=df_data.dependent.values,
-            theta_guess=[1.5, 400, 2, 500, 1, 0.2, 0.01, 3],
-            theta_bounds=[
-                (-numpy.inf, 5),
-                (60, numpy.inf),
-                (-4, 4),
-                (100, 1000),
-                (-5, 5),
-                (0.001, 10),
-                (0, 1),
-                (1, 30),
-            ],
-        )
-        # NOTE: The `df` hitting the upper limit is just an indication that the outcome distribution is flat-tailed.
-        #       At `df=30` the distribution is already close to the Normal, but still has the useful properties of
-        #       not going `nan` at extreme values.
-    model.save(wd / "biomass.json")
-    fig, axs = calibr8.plot_model(model)
+def plot_biomass_calibration(wd: pathlib.Path):
+    cm = models.BLProCDWBackscatterModelV1.load(wd / "biomass.json")
+    fig, axs = calibr8.plot_model(cm)
     plotting.savefig(fig, "calibration_biomass", dp=wd)
     return
 
@@ -278,10 +164,7 @@ def sample(wd: pathlib.Path):
         mle_dict = json.load(jfile)
 
     X_values = [item for (key, item) in mle_dict.items() if "X0" in key]
-    mcmc_dict = {
-        "X0_mu": numpy.mean(X_values),
-        "F_offset": numpy.clip([v / numpy.mean(X_values) for v in X_values], 0.8, 1.5),
-    }
+    mcmc_dict = {}
     for key, item in mle_dict.items():
         if not "X0" in key:
             mcmc_dict[key] = item
@@ -295,31 +178,16 @@ def sample(wd: pathlib.Path):
         calibration_models=[cm_glucose, cm_biomass],
     )
 
-    with pm.Model(coords={"replicate": list(dataset.keys())}) as pmodel:
-        # Specify a hyperprior on the initial biomass group mean:
-        # + centered on the planned inoculation density of 0.25 g/L in the main culture
-        # + with a 10 % standard deviation to account for pipetting errors
-        X0_mu = pm.Lognormal("X0_mu", mu=numpy.log(0.25), sd=0.10)
-
-        # Model the relative offset of initial biomass between each well and the group mean
-        # with a relative pipetting error of 20 %
-        F_offset = pm.Lognormal("F_offset", mu=0, sd=0.20, dims=("replicate",))
-
-        # Thereby, the initial biomass in each well is the product
-        # of group mean and relative offset:
-        X0 = pm.Deterministic("X0", X0_mu * F_offset, dims=("replicate",))
-
+    with pm.Model() as pmodel:
         # Combine the priors into a dictionary
         theta = {
             "S0": pm.Lognormal("S0", mu=numpy.log(20), sigma=0.10),
-            "Y_XS": pm.Beta("Y_XS", mu=0.6, sd=0.05),
+            "X0": pm.Lognormal("X0", mu=numpy.log(0.25), sd=0.10),
             "mu_max": pm.Beta("mu_max", mu=0.4, sd=0.1),
-            "K_S": pm.HalfFlat("K_S", testval=0.02),
-            # unpack the vector of initial biomasses into individual scalars
-            **{f"X0_{rid}": X0[w] for w, rid in enumerate(dataset.keys())},
+            "K_S": pm.HalfFlat("K_S", initval=0.02),
+            "Y_XS": pm.Beta("Y_XS", mu=0.6, sd=0.05),
         }
         L = objective(theta)
-
 
     try:
         graph = pm.model_to_graphviz(pmodel)
@@ -350,10 +218,10 @@ def sample(wd: pathlib.Path):
                 tune_drop_fraction=0.8,
             ),
             return_inferencedata=True,
-            tune=50_000,
-            draws=500_000,
+            tune=20_000,
+            draws=50_000,
             discard_tuned_samples=False,
-            start=start_dict,
+            initvals=start_dict,
             compute_convergence_checks=False,  # Can take rather long and we do this separately anyway.
             idata_kwargs={
                 # Likelihood evaluation of ODE models is really expensive.
@@ -392,24 +260,17 @@ def plot_pair(wd: pathlib.Path):
     t_start = time.time()
 
     replacements = {
-        "F_offset": "$F_{offset}$",
-        "X0_mu": "$X_{0,\mu}$",
         "X0": "$X_{0}$",
         "S0": "$S_{0}$",
         "mu_max": "$\mu_{\max}$",
-        "Y_XS": "$Y_{XS}$"
+        "K_S": "$K_S$",
+        "Y_XS": "$Y_{XS}$",
     }
     labeller = arviz.labels.MapLabeller(var_name_map=replacements)
 
-    if len(idata_full.posterior.replicate.values) == 28:
-        reps = idata_full.posterior.replicate.values.reshape(4, 7).flatten("F")
-    else:
-        reps = idata_full.posterior.replicate.values
     axs = arviz.plot_pair(
         idata_full,
-        var_names=["~F_offset"],
         figsize=(40, 40),
-        coords=dict(replicate=reps),
         kind='kde',
         labeller=labeller,
         backend_kwargs=dict(gridspec_kw=dict(hspace=0, wspace=0))
@@ -429,7 +290,7 @@ def summarize_parameters(wd: pathlib.Path):
         theta_dict = json.load(jfile)
     idata = arviz.from_netcdf(wd / "full_posterior.nc")
 
-    df = arviz.summary(idata, var_names="S0,mu_max,Y_XS,K_S,X0_mu,X0".split(","), hdi_prob=0.9, round_to="none")
+    df = arviz.summary(idata, var_names="X0,S0,mu_max,K_S,Y_XS".split(","), hdi_prob=0.9, round_to="none")
     rename_dict = {}
     for k in df.index.values:
         if "[" in k:
@@ -467,7 +328,7 @@ def plot_ks_curvature(wd: pathlib.Path):
 
     for rid in rids:
         _log.info("Preparing K_S curvature plot for %s", rid)
-        theta_mapping = models.get_parameter_mapping(rids=[rid], dp=wd)
+        theta_mapping = models.get_parameter_mapping(wd, rids)
 
         fig, axs = plotting.plot_ks_curvature(
             idata,
