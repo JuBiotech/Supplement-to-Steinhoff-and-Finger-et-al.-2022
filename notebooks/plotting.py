@@ -2,19 +2,9 @@ import fastprogress
 import matplotlib
 from matplotlib import cm, colors, pyplot
 import numpy
-from operator import itemgetter
 import pathlib
-import matplotlib.image as mpimg
-from matplotlib.ticker import FormatStrFormatter
-from mpl_toolkits.axes_grid1.inset_locator import InsetPosition, mark_inset
-import scipy
-import string
-import typing
 import arviz
-try:
-    import pymc as pm
-except ModuleNotFoundError:
-    import pymc3 as pm
+import pymc as pm
 
 
 import calibr8

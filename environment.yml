@@ -3,27 +3,16 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - ipywidgets=7.6.3=pyhd3eb1b0_1
-  - jupyter=1.0.0=py37_7
-  - libpython=2.1=py37_0
-  - matplotlib=3.3.2=haa95532_0
-  - mkl-service=2.3.0=py37h196d8e1_0
-  - numba=0.53.1=py37h4e635f9_0
-  - numpy=1.19.2=py37hadc3359_0
-  - pandas=1.2.1=py37hf11a4ad_0
-  - pip=20.3.3=py37haa95532_0
-  - python=3.7.9=h60c2a47_0
-  - python-graphviz==0.16=pyh243d235_2
-  - scipy=1.5.2=py37h9439919_0
-  - sympy=1.7.1=py37h03978a9_1
+  - numpy=1.21.2
+  - scipy=1.7.3
+  - watermark=2.3.0
   - pip:
-    - arviz==0.11.1
-    - calibr8==6.0.1
+    - aeppl==0.0.18
+    - aesara==2.3.2
+    - bletl==1.0.5
+    - calibr8==6.4.0
     - fastprogress==1.0.0
-    - h5py==3.1.0
-    - murefi==5.0.1
-    - openpyxl==3.0.7
-    - pymc3==3.11.2
-    - typing==3.7.4.3
-    - watermark==2.2.0
-    - xarray==0.16.2
+    - matplotlib==3.5.1
+    - murefi==5.1.0
+    - pandas==1.4.1
+    - pymc==4.0.0b2
