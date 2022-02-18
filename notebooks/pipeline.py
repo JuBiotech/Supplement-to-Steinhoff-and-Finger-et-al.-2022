@@ -422,3 +422,17 @@ def plot_mcmc(wd: pathlib.Path):
         pyplot.close()
     return
 
+
+def report_KS(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "full_posterior.nc")
+    with (wd / "summary.txt").open("w") as file:
+        ksmg = idata.posterior.K_S.stack(sample=("chain", "draw")).values * 1000
+        perc_50 = numpy.percentile(ksmg, 50)
+        perc_95 = numpy.percentile(ksmg, 95)
+        plt001 = numpy.mean(ksmg < 10)
+        file.writelines([
+            f"With 50 % probability: K_S < {perc_50:.1f} mg/L.\n",
+            f"With 95 % probability: K_S < {perc_95:.1f} mg/L.\n",
+            f"K_S < 10 mg/L with {plt001 * 100:.1f} % probability.\n"
+        ])
+    return
