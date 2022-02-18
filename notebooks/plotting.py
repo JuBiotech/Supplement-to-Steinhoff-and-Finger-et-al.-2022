@@ -317,6 +317,7 @@ def plot_kinetics(
     ax_glucose=None,
     biomass_violins=False,
     violin_shrink=20,
+    biomass_scatter=True,
 ):
     # Default glucose to the same axis as biomass
     axb = ax
@@ -355,7 +356,8 @@ def plot_kinetics(
         for i, (t, y) in fastprogress.progress_bar(list(enumerate(zip(ts.t, ts.y)))):
             if (rid, i) in inferred_posteriors:
                 pst = inferred_posteriors[(rid, i)]
-                axb.scatter(t, pst.median, s=400, color=green, marker="_")
+                if biomass_scatter:
+                    axb.scatter(t, pst.median, s=400, color=green, marker="_")
                 if biomass_violins:
                     axb.fill_betweenx(
                         y=pst.hdi_x,
@@ -458,6 +460,61 @@ def plot_ks_curvature(
     axb.set(
         xlim=(tmin, tmax),
         ylim=(ymin, ymax),
+    )
+    axg.set(
+        ylim=(0, None),
+    )
+    fig.tight_layout()
+
+    return fig, (axb, axg)
+
+
+def plot_full_kinetics(
+    idata,
+    theta_mapping,
+    model,
+    replicate: murefi.Replicate,
+    cm_biomass,
+    cm_glucose,
+):
+    rid = replicate.rid
+    ipeak = numpy.argmax(replicate["Pahpshmir_1400_BS3_CgWT"].y)
+
+    inferred_posteriors = {}
+    ts: murefi.Timeseries = replicate['Pahpshmir_1400_BS3_CgWT']
+    for i, y in fastprogress.progress_bar(list(enumerate(ts.y))):
+        inferred_posteriors[(rid, i)] = cm_biomass.infer_independent(y, lower=0, upper=20, ci_prob=0.9)
+
+    fig, (axb, axg) = pyplot.subplots(ncols=2, sharex=True, figsize=(12, 6), dpi=200)
+
+    template = {
+        rid : murefi.Replicate.make_template(0, replicate.t_max, "SX", rid=rid, N=400)
+    }
+    ds_prediction = plot_kinetics(
+        axb,
+        idata,
+        theta_mapping,
+        model,
+        {rid: replicate},
+        cm_biomass,
+        cm_glucose,
+        inferred_posteriors,
+        annotate=False,
+        predict_kwargs=dict(template=template),
+        ax_glucose=axg,
+        biomass_violins=False,
+        violin_shrink=500,
+        biomass_scatter=False,
+    )
+
+    y = ds_prediction[rid]["X"].y
+    ymin, ymax = numpy.percentile(y, [5, 95])
+    ymin = ymin - 0.2
+    ymax = ymax + 0.2
+
+    axb.set(
+        #xlim=(tmin, tmax),
+        ylim=(0, None),
     )
     axg.set(
         ylim=(0, None),
