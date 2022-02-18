@@ -73,14 +73,58 @@ def prepare_parametermapping(wd: pathlib.Path):
 
 def plot_glucose_calibration(wd: pathlib.Path):
     cm = models.LogisticGlucoseCalibrationModelV1.load(wd / "glucose.json")
-    fig, axs = calibr8.plot_model(cm)
+
+    fig = pyplot.figure(figsize=(12*1.3, 3.65*1.3), dpi=120)
+    gs1 = fig.add_gridspec(1, 3, wspace=0.05, width_ratios=[1.125, 1.125, 1.5])
+    gs2 = fig.add_gridspec(1, 3, wspace=0.5, width_ratios=[1.125, 1.125, 1.5])
+    axs = []
+    axs.append(fig.add_subplot(gs1[0, 0]))
+    axs.append(fig.add_subplot(gs1[0, 1], sharey=axs[0]))
+    pyplot.setp(axs[1].get_yticklabels(), visible=False)
+    axs.append(fig.add_subplot(gs2[0, 2]))
+    calibr8.plot_model(cm, fig=fig, axs=axs)
+    xlabel = r"$\mathrm{glucose\ concentration\ [\frac{g}{L}]}$"
+    axs[0].set(
+        ylabel=r"$\mathrm{absorbance_{365\ nm}}\ [-]$",
+        xlabel=xlabel,
+    )
+    axs[1].set(
+        xlabel=xlabel,
+    )
+    axs[2].set(
+        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        xlabel=xlabel,
+    )
+    axs[2].legend(loc="upper left")
     plotting.savefig(fig, "calibration_glucose", dp=wd)
     return
 
 
 def plot_biomass_calibration(wd: pathlib.Path):
     cm = models.BLProCDWBackscatterModelV1.load(wd / "biomass.json")
-    fig, axs = calibr8.plot_model(cm)
+
+    fig = pyplot.figure(figsize=(12*1.3, 3.65*1.3), dpi=120)
+    gs1 = fig.add_gridspec(1, 3, wspace=0.05, width_ratios=[1.125, 1.125, 1.5])
+    gs2 = fig.add_gridspec(1, 3, wspace=0.5, width_ratios=[1.125, 1.125, 1.5])
+    axs = []
+    axs.append(fig.add_subplot(gs1[0, 0]))
+    axs.append(fig.add_subplot(gs1[0, 1], sharey=axs[0]))
+    pyplot.setp(axs[1].get_yticklabels(), visible=False)
+    axs.append(fig.add_subplot(gs2[0, 2]))
+    calibr8.plot_model(cm, fig=fig, axs=axs)
+    xlabel = r"$\mathrm{biomass\ concentration\ [\frac{g_{CDW}}{L}]}$"
+    axs[0].set(
+        ylabel=r"$\mathrm{backscatter\ [a.u.]}$",
+        xlabel=xlabel,
+    )
+    axs[1].set(
+        xlabel=xlabel,
+    )
+    axs[2].set(
+        ylabel=r"$\mathrm{absolute\ residual\ [a.u.]}$",
+        xlabel=xlabel,
+    )
+    axs[2].legend(loc="upper left")
     plotting.savefig(fig, "calibration_biomass", dp=wd)
     return
 
