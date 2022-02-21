@@ -345,7 +345,7 @@ def plot_kinetics(
 
     for rid, rep in ds_prediction.items():
         for ikey, ts in rep.items():
-            pm.gp.util.plot_gp_dist(
+            plot_density(
                 ax=axmap[ts.independent_key],
                 x=ts.t,
                 samples=ts.y,
@@ -525,3 +525,42 @@ def plot_full_kinetics(
     fig.tight_layout()
 
     return fig, (axb, axg)
+
+
+def plot_density(*, ax, x, samples, percentiles=(5, 95), percentile_kwargs=None, **kwargs):
+    assert samples.ndim == 2
+
+    # Step-function mode draws horizontal density bands inbetween the x coordinates
+    step_mode = samples.shape[1] == x.shape[0] - 1
+    fill_kwargs = {}
+    if step_mode:
+        samples = numpy.hstack([
+            samples,
+            samples[:, -1][:, None]
+        ])
+        fill_kwargs["step"] = "post"
+
+    # Plot the density band
+    pm.gp.util.plot_gp_dist(
+        ax=ax,
+        x=x,
+        samples=samples,
+        fill_kwargs=fill_kwargs,
+        **kwargs
+    )
+
+    # Add percentiles for orientation
+    pkwargs = dict(
+        linestyle="--",
+        color="black",
+    )
+    pkwargs.update(percentile_kwargs or {})
+    for p in percentiles:
+        values = numpy.percentile(samples, p, axis=0)
+        if step_mode:
+            ax.stairs(values[:-1], x, baseline=None, **pkwargs)
+        else:
+            ax.plot(x, values, **pkwargs)
+        pass
+
+    return
