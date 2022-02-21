@@ -10,6 +10,7 @@ import pathlib
 
 import arviz
 import calibr8
+import fastprogress
 import json
 import murefi
 import numpy
@@ -597,4 +598,123 @@ def plot_raw_data_zoom(wd: pathlib.Path):
 
     fig.tight_layout()
     plotting.savefig(fig, "plot_raw_data_zoom", dp=wd)
+    return
+
+
+def plot_kinetics_with_insets(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "full_posterior.nc")
+    cm_biomass = models.get_biomass_model(wd)
+    cm_glucose = models.get_glucose_model(wd)
+    model = models.MonodModel()
+    dataset = murefi.load_dataset(wd / "cultivation_dataset.h5")
+
+    rid = "A01"
+    theta_mapping = models.get_parameter_mapping(wd, [rid])
+    replicate = dataset[rid]
+
+    ipeak = numpy.argmax(replicate["Pahpshmir_1400_BS3_CgWT"].y)
+
+    inferred_posteriors = {}
+    ts: murefi.Timeseries = replicate['Pahpshmir_1400_BS3_CgWT']
+    for i, y in fastprogress.progress_bar(list(enumerate(ts.y))):
+        inferred_posteriors[(rid, i)] = cm_biomass.infer_independent(y, lower=0, upper=20, ci_prob=0.9)
+
+    tmin, tmax = (9.95, 10.1)
+    # Make a kinetics prediction only for the zoomed-in time range
+    ds_prediction = plotting.predict_kinetics(
+        idata=idata,
+        model=model,
+        theta_mapping=theta_mapping,
+        subset={rid: replicate},
+        predict_kwargs=dict(template={
+            rid : murefi.Replicate.make_template(tmin, tmax, "SX", rid=rid, N=300)
+        }),
+    )
+
+    fig, axs = pyplot.subplots(ncols=2, sharex=True, figsize=(12, 6), dpi=200)
+
+    plotting.plot_kinetics(
+        axs[0],
+        idata,
+        theta_mapping,
+        model,
+        {rid: replicate},
+        cm_biomass,
+        cm_glucose,
+        inferred_posteriors,
+        annotate=False,
+        predict_kwargs=dict(template={
+            rid : murefi.Replicate.make_template(0, replicate.t_max + 0.25, "SX", rid=rid, N=300)
+        }),
+        ax_glucose=axs[1],
+        biomass_violins=False,
+        violin_shrink=500,
+        biomass_scatter=False,
+    )
+
+    ax = axs[0]
+    ax.set(
+        xlim=(0, 10.5),
+        ylim=(0, None),
+    )
+    axi = ax.inset_axes([0.12, 0.47, 0.5, 0.5])
+    axi.set(
+        xlim=(tmin, tmax),
+        ylim=(12.75, 13.25),
+    )
+    ax.indicate_inset_zoom(axi, edgecolor="black")
+    ts: murefi.Timeseries = replicate['Pahpshmir_1400_BS3_CgWT']
+    for i, (t, y) in fastprogress.progress_bar(list(enumerate(zip(ts.t, ts.y)))):
+        if t > tmin and t < tmax:
+            pst = inferred_posteriors[(rid, i)]
+            pst = inferred_posteriors[(rid, i)]
+            axi.scatter(t, pst.median, s=400, color="green", marker="_")
+            axi.fill_betweenx(
+                y=pst.hdi_x,
+                x1=t - pst.hdi_pdf/500,
+                x2=t + pst.hdi_pdf/500,
+                color="green", alpha=0.5,
+                edgecolor=None,
+            )
+    plotting.plot_density(
+        ax=axi,
+        x=ds_prediction["A01"]["X"].t,
+        samples=ds_prediction["A01"]["X"].y,
+        palette=pyplot.cm.Greens,
+        plot_samples=True,
+    )
+
+    ax = axs[1]
+    ax.set(
+        ylim=(0, None),
+    )
+    axi = ax.inset_axes([0.15, 0.1, 0.47, 0.47])
+    tmin, tmax = (9.95, 10.1)
+    axi.set(
+        xlim=(tmin, tmax),
+        ylim=(0, 0.2),
+    )
+    ax.indicate_inset_zoom(axi, edgecolor="black")
+    plotting.plot_density(
+        ax=axi,
+        x=ds_prediction["A01"]["S"].t,
+        samples=ds_prediction["A01"]["S"].y,
+        palette=pyplot.cm.Reds,
+        plot_samples=True,
+    )
+    ts = replicate["A365"]
+    assert len(ts.t) == 1
+    t = ts.t[-1]
+    pst = cm_glucose.infer_independent(ts.y, lower=0, upper=20, ci_prob=0.9)
+    axi.scatter(t, pst.median, s=400, color="blue", marker="_")
+    axi.fill_betweenx(
+        y=pst.hdi_x,
+        x1=t - pst.hdi_pdf/4000,
+        x2=t + pst.hdi_pdf/4000,
+        color="blue", alpha=1,
+        edgecolor=None,
+    )
+
+    fig.tight_layout()
+    plotting.savefig(fig, "plot_kinetics_with_insets", dp=wd)
     return
