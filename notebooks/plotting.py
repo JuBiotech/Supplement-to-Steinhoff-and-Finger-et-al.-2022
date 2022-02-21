@@ -305,6 +305,16 @@ def hdi_ticklimits(axs, idata, replacements, ylabelpad=-50, xlabelpad=-15, xrota
     return
 
 
+def predict_kinetics(*, model, theta_mapping, idata, subset, predict_kwargs=None) -> murefi.Dataset:
+    parameters_sample = extract_parameters(idata, theta_mapping, nmax=1000)
+    if not predict_kwargs:
+        predict_kwargs = {}
+    predict_kwargs.setdefault("template", murefi.Dataset.make_template_like(subset, independent_keys='SX'))
+    predict_kwargs.setdefault("parameter_mapping", theta_mapping)
+    predict_kwargs.setdefault("parameters", parameters_sample)
+    return model.predict_dataset(**predict_kwargs)
+
+
 def plot_kinetics(
     ax,
     idata_full,
@@ -326,14 +336,13 @@ def plot_kinetics(
     axb = ax
     axg = (ax_glucose or ax)
 
-    parameters_sample = extract_parameters(idata_full, theta_mapping, nmax=1000)
-
-    if not predict_kwargs:
-        predict_kwargs = {}
-    predict_kwargs.setdefault("template", murefi.Dataset.make_template_like(subset, independent_keys='SX'))
-    predict_kwargs.setdefault("parameter_mapping", theta_mapping)
-    predict_kwargs.setdefault("parameters", parameters_sample)
-    ds_prediction = model.predict_dataset(**predict_kwargs)
+    ds_prediction = predict_kinetics(
+        model=model,
+        theta_mapping=theta_mapping,
+        idata=idata_full,
+        subset=subset,
+        predict_kwargs=predict_kwargs,
+    )
 
     red = cm.Reds(0.9)
     green = cm.Greens(0.9)
