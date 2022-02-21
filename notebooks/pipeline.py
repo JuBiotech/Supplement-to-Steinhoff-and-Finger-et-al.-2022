@@ -436,3 +436,49 @@ def report_KS(wd: pathlib.Path):
             f"K_S < 10 mg/L with {plt001 * 100:.1f} % probability.\n"
         ])
     return
+
+
+def plot_monod_schematic(wd: pathlib.Path):
+    """Makes a quadratic visualizatoin of the Monod kinetics with an exaggerated K_S value."""
+    model = models.MonodModel()
+    params = dict(S0=20, X0=0.25, mu_max=0.5, K_S=3, Y_XS=0.6)
+    rep = model.predict_replicate(
+        parameters=[
+            params[pname]
+            for pname in model.parameter_names
+        ],
+        template=murefi.Replicate.make_template(0, 11, independent_keys="SX")
+    )
+
+    fig, ax = pyplot.subplots(figsize=(4, 4), dpi=200)
+
+    ax.plot(rep["S"].t, rep["S"].y, color="red", label="substrate")
+    ax.plot(rep["X"].t, rep["X"].y, color="green", label="biomass")
+    ax.annotate(
+        "",
+        xy=(9, 12),
+        xytext=(8, 14),
+        arrowprops=dict(color="black"),
+    )
+
+    params_textemplate = {
+        "X0": r"$\mathrm{X_0=%s~g/L}$",
+        "S0": r"$\mathrm{S_0=%s~g/L}$",
+        "mu_max": r"$\mathrm{\mu_{max}}=%s~1/h}$",
+        "Y_XS": r"$\mathrm{Y_{XS}=%s~g/g}$",
+        "K_S": r"$\mathrm{K_{S}=%s~g/L}$",
+    }
+    for p, (pname, template) in enumerate(params_textemplate.items()):
+        pval = params.get(pname)
+        ax.text(5, 13 - (p * 2), template % pval, fontsize="x-small", ha="right")
+
+    ax.legend()
+    ax.set(
+        ylabel="concentration   [g/L]",
+        xlabel="time   [h]",
+        ylim=(0, None),
+        xlim=(0, None),
+    )
+    fig.tight_layout()
+    plotting.savefig(fig, "plot_monod_schematic", dp=wd)
+    return
