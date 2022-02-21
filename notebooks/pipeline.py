@@ -19,6 +19,7 @@ import sys
 import time
 from matplotlib import pyplot
 
+import bletl
 import pymc as pm
 
 import preprocessing
@@ -481,4 +482,116 @@ def plot_monod_schematic(wd: pathlib.Path):
     )
     fig.tight_layout()
     plotting.savefig(fig, "plot_monod_schematic", dp=wd)
+    return
+
+
+def plot_raw_data(wd: pathlib.Path):
+    bldata = bletl.parse(preprocessing.DP_DATA / "757-MO_Fast-MO-2022-02-08-20-59-49.csv")
+
+    fig, ax1 = pyplot.subplots(figsize=(6, 4), dpi=200, facecolor="white")
+    ax2 = ax1.twinx()
+    ax3 = ax1.twinx()
+
+    ax3.spines.right.set_position(("axes", 1.3))
+
+    # Backscatter
+    ax = ax1
+    ax.scatter(
+        *bldata.get_timeseries("BS3", "A01"),
+        marker=".",
+        s=0.5,
+        color="green",
+    )
+    ax.set(
+        ylabel="backscatter   [a.u.]",
+        xlabel="time   [h]",
+        ylim=(0, None),
+        xlim=(0, 12),
+        yticks=[0, 10, 20, 30],
+        xticks=[0, 5, 10],
+    )
+    ax.yaxis.label.set_color("green")
+    ax.tick_params(axis="y", colors="green")
+
+    # DO
+    ax = ax2
+    ax.plot(
+        *bldata.get_timeseries("DO", "A01"),
+        color="blue",
+    )
+    ax.set(
+        ylabel="dissolved $\mathrm{O_2}$   [%]",
+        ylim=(0, 110)
+    )
+    ax.yaxis.label.set_color("blue")
+    ax.tick_params(axis="y", colors="blue")
+
+    # pH
+    ax = ax3
+    ax.plot(
+        *bldata.get_timeseries("pH", "A01"),
+        color="orange",
+    )
+    ax.set(
+        ylabel="pH   [-]",
+        ylim=(6, 7)
+    )
+    ax.yaxis.label.set_color("orange")
+    ax.tick_params(axis="y", colors="orange")
+
+    fig.tight_layout()
+    plotting.savefig(fig, "plot_raw_data", dp=wd)
+    return
+
+
+def plot_raw_data_zoom(wd: pathlib.Path):
+    bldata = bletl.parse(preprocessing.DP_DATA / "757-MO_Fast-MO-2022-02-08-20-59-49.csv")
+
+    fig, ax1 = pyplot.subplots(figsize=(4.5, 4), dpi=200, facecolor="white")
+    ax2 = ax1.twinx()
+
+    # Backscatter
+    ax = ax1
+
+    t, bs = bldata.get_timeseries("BS3", "A01")
+    tmax = t[numpy.argmax(bs)]
+    mask = t <= tmax
+    ax.plot(t[mask], bs[mask], marker="x", color="green")
+    ax.scatter(t[~mask], bs[~mask], marker=".", color="green")
+    ax.annotate(
+        "max(backscatter)", color="green",
+        fontsize=8,
+        xy=(tmax, 31.1), xytext=(tmax, 29.8), arrowprops=dict(color="green", width=1, headwidth=5, headlength=5)
+    )
+    ax.set(
+        ylabel="backscatter   [a.u.]",
+        xlabel="time   [h]",
+        ylim=(25, 32),
+        xlim=(9.7, 10.3),
+        yticks=[25, 28, 31],
+    )
+    ax.yaxis.label.set_color("green")
+    ax.tick_params(axis="y", colors="green")
+
+    # DO
+    ax = ax2
+    ax.plot(
+        *bldata.get_timeseries("DO", "A01"),
+        color="blue",
+        marker="x",
+    )
+    ax.annotate(
+        "trend deviation", color="blue",
+        fontsize=8,
+        xy=(10, 31.5), xytext=(10.05, 29), arrowprops=dict(color="blue", width=1, headwidth=5, headlength=5)
+    )
+    ax.set(
+        ylabel="dissolved $\mathrm{O_2}$   [%]",
+        ylim=(25, 45)
+    )
+    ax.yaxis.label.set_color("blue")
+    ax.tick_params(axis="y", colors="blue")
+
+    fig.tight_layout()
+    plotting.savefig(fig, "plot_raw_data_zoom", dp=wd)
     return
