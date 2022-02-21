@@ -20,7 +20,10 @@ import time
 from matplotlib import pyplot
 
 import bletl
-import pymc as pm
+try:
+    import pymc as pm
+except:
+    import pymc3 as pm
 
 import preprocessing
 import models

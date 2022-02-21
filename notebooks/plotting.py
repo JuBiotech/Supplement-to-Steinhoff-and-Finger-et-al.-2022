@@ -4,7 +4,10 @@ from matplotlib import cm, colors, pyplot
 import numpy
 import pathlib
 import arviz
-import pymc as pm
+try:
+    import pymc as pm
+except:
+    import pymc3 as pm
 
 
 import calibr8
