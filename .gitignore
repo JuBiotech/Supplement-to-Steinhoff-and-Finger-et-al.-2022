@@ -496,3 +496,4 @@ MigrationBackup/
 *.nc
 !**/4.2.2 FlowerPlate_named.png
 /results/*
+/scripts/*
