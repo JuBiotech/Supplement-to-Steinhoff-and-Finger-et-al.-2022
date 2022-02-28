@@ -53,12 +53,16 @@ def prepare_dataset(
     wd: pathlib.Path,
     trim_backscatter=True,
     force_glucose_zero=True,
-    fname_bldata:str="757-MO_Fast-MO-2022-02-08-20-59-49.csv"
+    fname_bldata:str="757-MO_Fast-MO-2022-02-08-20-59-49.csv",
+    mask_from: float=numpy.inf,
+    mask_to: float=0,
 ):
     dataset = preprocessing.create_cultivation_dataset(
         fname_bldata=fname_bldata,
         trim_backscatter=trim_backscatter,
         force_glucose_zero=force_glucose_zero,
+        mask_from=mask_from,
+        mask_to=mask_to,
     )
     _log.info("Saving dataset %s", dataset)
     dataset.save(wd / "cultivation_dataset.h5")

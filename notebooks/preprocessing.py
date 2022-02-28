@@ -5,6 +5,7 @@ their original data formatats to Excel sheets.
 This transformation is performed with our internal packages `bletl` and `retl`.
 """
 import logging
+from typing import Tuple
 import numpy
 import pathlib
 
@@ -22,6 +23,8 @@ def create_cultivation_dataset(
     trim_backscatter=False,
     dkey_x="Pahpshmir_1400_BS3_CgWT",
     force_glucose_zero=False,
+    mask_from: float=numpy.inf,
+    mask_to: float=0,
 ) -> murefi.Dataset:
     bldata = bletl.parse(DP_DATA / fname_bldata)
     dataset = murefi.Dataset()
@@ -39,8 +42,9 @@ def create_cultivation_dataset(
                 _log.info("Peak backscatter of %s in cycle %i at %f is too low to be the entry into stationary phase. NOT trimming.", well, ipeak, ypeak)
 
         replicate = murefi.Replicate(well)
+        drop = numpy.logical_and(X_t < mask_to, X_t > mask_from)
         replicate[dkey_x] = murefi.Timeseries(
-            X_t, X_y, independent_key="X", dependent_key=dkey_x
+            X_t[~drop], X_y[~drop], independent_key="X", dependent_key=dkey_x
         )
         if force_glucose_zero:
             replicate["A365"] = murefi.Timeseries(
