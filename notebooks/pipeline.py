@@ -507,8 +507,9 @@ def plot_raw_data(wd: pathlib.Path):
     ax.scatter(
         *bldata.get_timeseries("BS3", "A01"),
         marker=".",
-        s=0.5,
-        color="green",
+        s=3,
+        facecolor="green",
+        edgecolor="none"
     )
     ax.set(
         ylabel="backscatter   [a.u.]",
@@ -565,7 +566,7 @@ def plot_raw_data_zoom(wd: pathlib.Path):
     tmax = t[numpy.argmax(bs)]
     mask = t <= tmax
     ax.plot(t[mask], bs[mask], marker="x", color="green")
-    ax.scatter(t[~mask], bs[~mask], marker=".", color="green")
+    ax.scatter(t[~mask], bs[~mask], marker=".", facecolor="green", edgecolor="none")
     ax.annotate(
         "max(backscatter)", color="green",
         fontsize=8,
