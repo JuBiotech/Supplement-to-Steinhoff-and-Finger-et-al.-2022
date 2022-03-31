@@ -316,7 +316,7 @@ def plot_pair(wd: pathlib.Path):
         "X0": "$X_{0}$\n$g\ L^{-1}$",
         "S0": "$S_{0}$\n$g\ L^{-1}$",
         "mu_max": "$\mu_{\max}$\n$\mathrm{h}$",
-        "K_S": "$K_S$\n$g\ L^{-1}$",
+        "K_S": "$k_S$\n$g\ L^{-1}$",
         "Y_XS": "$Y_{XS}$\n$g\ L^{-1}$",
     }
     labeller = arviz.labels.MapLabeller(var_name_map=replacements)
@@ -471,11 +471,11 @@ def plot_monod_schematic(wd: pathlib.Path):
     )
 
     params_textemplate = {
-        "X0": r"$\mathrm{X_0=%s~g/L}$",
-        "S0": r"$\mathrm{S_0=%s~g/L}$",
-        "mu_max": r"$\mathrm{\mu_{max}}=%s~1/h}$",
-        "Y_XS": r"$\mathrm{Y_{XS}=%s~g/g}$",
-        "K_S": r"$\mathrm{K_{S}=%s~g/L}$",
+        "X0": r"$\mathrm{X_0=%s~g\ L^{-1}}$",
+        "S0": r"$\mathrm{S_0=%s~g\ L^{-1}}$",
+        "mu_max": r"$\mathrm{\mu_{max}}=%s~h^{-1}}$",
+        "Y_XS": r"$\mathrm{Y_{XS}=%s~g\ g^{-1}}$",
+        "K_S": r"$\mathrm{k_{S}=%s~g\ L^{-1}}$",
     }
     for p, (pname, template) in enumerate(params_textemplate.items()):
         pval = params.get(pname)
