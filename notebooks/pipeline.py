@@ -234,11 +234,11 @@ def sample(wd: pathlib.Path):
     with pm.Model() as pmodel:
         # Combine the priors into a dictionary
         theta = {
-            "S0": pm.Lognormal("S0", mu=numpy.log(20), sigma=0.10),
-            "X0": pm.Lognormal("X0", mu=numpy.log(0.25), sd=0.10),
-            "mu_max": pm.Beta("mu_max", mu=0.4, sd=0.1),
+            "S0": pm.LogNormal("S0", mu=numpy.log(20), sigma=0.10),
+            "X0": pm.LogNormal("X0", mu=numpy.log(0.25), sigma=0.10),
+            "mu_max": pm.Beta("mu_max", mu=0.4, sigma=0.1),
             "K_S": pm.HalfFlat("K_S", initval=0.02),
-            "Y_XS": pm.Beta("Y_XS", mu=0.6, sd=0.05),
+            "Y_XS": pm.Beta("Y_XS", mu=0.6, sigma=0.05),
         }
         L = objective(theta)
 
