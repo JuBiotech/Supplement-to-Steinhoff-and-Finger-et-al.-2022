@@ -92,16 +92,16 @@ def plot_glucose_calibration(wd: pathlib.Path):
     pyplot.setp(axs[1].get_yticklabels(), visible=False)
     axs.append(fig.add_subplot(gs2[0, 2]))
     calibr8.plot_model(cm, fig=fig, axs=axs)
-    xlabel = r"$\mathrm{glucose\ concentration\ [\frac{g}{L}]}$"
+    xlabel = r"$\mathrm{glucose\ concentration\ /\ g\ L^{-1}}$"
     axs[0].set(
-        ylabel=r"$\mathrm{absorbance_{365\ nm}}\ [-]$",
+        ylabel=r"$\mathrm{absorbance_{365\ nm}}\ /\ -$",
         xlabel=xlabel,
     )
     axs[1].set(
         xlabel=xlabel,
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        ylabel=r"$\mathrm{absolute\ residual\ /\ -}$",
         xlabel=xlabel,
     )
     axs[2].legend(loc="upper left")
@@ -121,16 +121,16 @@ def plot_biomass_calibration(wd: pathlib.Path):
     pyplot.setp(axs[1].get_yticklabels(), visible=False)
     axs.append(fig.add_subplot(gs2[0, 2]))
     calibr8.plot_model(cm, fig=fig, axs=axs)
-    xlabel = r"$\mathrm{biomass\ concentration\ [\frac{g_{CDW}}{L}]}$"
+    xlabel = r"$\mathrm{biomass\ concentration\ /\ g\ L^{-1}}$"
     axs[0].set(
-        ylabel=r"$\mathrm{backscatter\ [a.u.]}$",
+        ylabel=r"$\mathrm{backscatter\ /\ a.u.}$",
         xlabel=xlabel,
     )
     axs[1].set(
         xlabel=xlabel,
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [a.u.]}$",
+        ylabel=r"$\mathrm{absolute\ residual\ /\ a.u.}$",
         xlabel=xlabel,
     )
     axs[2].legend(loc="upper left")
@@ -313,11 +313,11 @@ def plot_pair(wd: pathlib.Path):
     t_start = time.time()
 
     replacements = {
-        "X0": "$X_{0}$",
-        "S0": "$S_{0}$",
-        "mu_max": "$\mu_{\max}$",
-        "K_S": "$K_S$",
-        "Y_XS": "$Y_{XS}$",
+        "X0": "$X_{0}$\n$g\ L^{-1}$",
+        "S0": "$S_{0}$\n$g\ L^{-1}$",
+        "mu_max": "$\mu_{\max}$\n$\mathrm{h}$",
+        "K_S": "$K_S$\n$g\ L^{-1}$",
+        "Y_XS": "$Y_{XS}$\n$g\ L^{-1}$",
     }
     labeller = arviz.labels.MapLabeller(var_name_map=replacements)
 
@@ -483,8 +483,8 @@ def plot_monod_schematic(wd: pathlib.Path):
 
     ax.legend()
     ax.set(
-        ylabel="concentration   [g/L]",
-        xlabel="time   [h]",
+        ylabel="concentration / $g\ L^{-1}$",
+        xlabel="time / h",
         ylim=(0, None),
         xlim=(0, None),
     )
@@ -512,8 +512,8 @@ def plot_raw_data(wd: pathlib.Path):
         edgecolor="none"
     )
     ax.set(
-        ylabel="backscatter   [a.u.]",
-        xlabel="time   [h]",
+        ylabel="backscatter / a.u.",
+        xlabel="time / h",
         ylim=(0, None),
         xlim=(0, 12),
         yticks=[0, 10, 20, 30],
@@ -529,7 +529,7 @@ def plot_raw_data(wd: pathlib.Path):
         color="blue",
     )
     ax.set(
-        ylabel="dissolved $\mathrm{O_2}$   [%]",
+        ylabel="dissolved $\mathrm{O_2}$ / %",
         ylim=(0, 110)
     )
     ax.yaxis.label.set_color("blue")
@@ -542,7 +542,7 @@ def plot_raw_data(wd: pathlib.Path):
         color="orange",
     )
     ax.set(
-        ylabel="pH   [-]",
+        ylabel="pH / -",
         ylim=(6, 7)
     )
     ax.yaxis.label.set_color("orange")
@@ -573,8 +573,8 @@ def plot_raw_data_zoom(wd: pathlib.Path):
         xy=(tmax, 31.1), xytext=(tmax, 29.8), arrowprops=dict(color="green", width=1, headwidth=5, headlength=5)
     )
     ax.set(
-        ylabel="backscatter   [a.u.]",
-        xlabel="time   [h]",
+        ylabel="backscatter / a.u.",
+        xlabel="time / h",
         ylim=(25, 32),
         xlim=(9.7, 10.3),
         yticks=[25, 28, 31],
@@ -595,7 +595,7 @@ def plot_raw_data_zoom(wd: pathlib.Path):
         xy=(10, 31.5), xytext=(10.05, 29), arrowprops=dict(color="blue", width=1, headwidth=5, headlength=5)
     )
     ax.set(
-        ylabel="dissolved $\mathrm{O_2}$   [%]",
+        ylabel="dissolved $\mathrm{O_2}$ / %",
         ylim=(25, 45)
     )
     ax.yaxis.label.set_color("blue")

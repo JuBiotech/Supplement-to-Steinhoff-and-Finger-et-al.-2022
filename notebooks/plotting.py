@@ -236,11 +236,11 @@ def plot_mle(
     right.scatter([], [], marker="x", s=1, color="green", label="inferred biomass")
 
     # Set axis labels and lims
-    left.set_ylabel("backscatter   [a.u]")
-    left.set_xlabel("time   [h]")
-    left2.set_ylabel(r"A$_{\mathrm{365nm}}$   [-]")
-    right.set_ylabel("concentration   [g/L]")
-    right.set_xlabel("time [h]")
+    left.set_ylabel("backscatter / a.u")
+    left.set_xlabel("time / h")
+    left2.set_ylabel(r"A$_{\mathrm{365nm}}$ / -")
+    right.set_ylabel("concentration / $g\ L^{-1}$")
+    right.set_xlabel("time / h")
     right.set_xlim(None, None)
     right.set_ylim(0, 21)
     left.set_ylim(0, 40)
@@ -268,18 +268,16 @@ def hdi_ticklimits(axs, idata, replacements, ylabelpad=-50, xlabelpad=-15, xrota
     inv_replacements = {val: key for key, val in replacements.items()}
     def _edit(axs, which: str):
         get_label = getattr(axs[0], f"get_{which}label")
-    
+
+        # Which RV does this axis belong to?
         label = get_label()
-        rvname = label.split("\n")[0]
-        rvname = inv_replacements.get(rvname, rvname)
+        if label not in inv_replacements:
+            raise KeyError(f"Did not find label '{label}' in replacements mapping.")
+        rvname = inv_replacements[label]
+
         rv = posterior[rvname]
-        sel = {}
-        if "\n" in label:
-            for cname, cval in zip(rv.coords, label.split("\n")[1:]):
-                # TODO: typecast cval to match the coord type
-                sel[cname] = cval
-        limits = hdi98[rvname].sel(sel).values
-        hdi = hdi90[rvname].sel(sel).values
+        limits = hdi98[rvname].values
+        hdi = hdi90[rvname].values
         # Round the HDI such that it differs in the last 2 decimals.
         # This way the label looks nice but is only positioned wrong by <1%
         # of the plot width.
@@ -414,12 +412,12 @@ def plot_kinetics(
                 horizontalalignment='center',
             )
 
-    axb.set_ylabel('concentration   [g/L]')
-    axb.set_xlabel('time   [h]')
+    axb.set_ylabel('concentration / $g\ L^{-1}$')
+    axb.set_xlabel('time / h')
     if ax_glucose:
-        axb.set_ylabel('biomass   [g/L]')
-        axg.set_ylabel('glucose   [g/L]')
-        axg.set_xlabel('time   [h]')
+        axb.set_ylabel('biomass / $g\ L^{-1}$')
+        axg.set_ylabel('glucose / $g\ L^{-1}$')
+        axg.set_xlabel('time / h')
     return ds_prediction
 
 
