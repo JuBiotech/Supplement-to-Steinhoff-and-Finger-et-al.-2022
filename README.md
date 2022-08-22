@@ -1,4 +1,6 @@
-﻿This repository contains the data and analysis for ODE-modeling based $K_S$ determination.
+﻿[![DOI](https://zenodo.org/badge/462239542.svg)](https://zenodo.org/badge/latestdoi/462239542)
+ 
+ This repository contains the data and analysis for ODE-modeling based $K_S$ determination.
 
 # Contents
 * `data` contains raw datasets
