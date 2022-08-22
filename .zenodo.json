@@ -1,0 +1,32 @@
+{
+    "description": "Supplement to Steinhoff and Finger et al. (2022), High precision ks estimation: A comparison of methods for Corynebacterium glutamicum from lab to microfluidic scale", 
+    "license": "AGPLv3", 
+    "title": "Supplement to High precision ks estimation: A comparison of methods for Corynebacterium glutamicum from lab to microfluidic scale", 
+    "version": "2022-08-22", 
+    "upload_type": "software", 
+    "publication_date": "2022-08-22", 
+    "creators": [
+        {
+            "affiliation": "Forschungszentrum J\u00fclich GmbH", 
+            "name": "Michael Osthege",
+            "orcid": "0000-0002-2734-7624"
+        }, 
+        {
+            "affiliation": "Forschungszentrum J\u00fclich GmbH", 
+            "name": "Simone Schito"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "scheme": "url", 
+            "identifier": "https://github.com/JuBiotech/Supplement-to-Steinhoff-and-Finger-et-al.-2022/tree/2022-08-22", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "scheme": "doi", 
+            "identifier": "10.5281/zenodo.7014829", 
+            "relation": "isVersionOf"
+        }
+    ]
+}
